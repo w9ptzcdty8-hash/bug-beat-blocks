@@ -148,11 +148,15 @@ function resizeCanvas() {
     let boardWidth = COLS * BLOCK_SIZE;
     let boardHeight = ROWS * BLOCK_SIZE;
 
-    canvas.width = boardWidth;
-    canvas.height = boardHeight;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+    canvas.width = Math.round(boardWidth * dpr);
+    canvas.height = Math.round(boardHeight * dpr);
 
     canvas.style.width = `${boardWidth}px`;
     canvas.style.height = `${boardHeight}px`;
+
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
     const sidePanel = document.getElementById('side-panel');
     sidePanel.style.width = `${sidePanelW}px`;
@@ -1112,12 +1116,15 @@ function getGhostY() {
 }
 
 function drawGame() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const boardWidth = COLS * BLOCK_SIZE;
+    const boardHeight = ROWS * BLOCK_SIZE;
+
+    ctx.clearRect(0, 0, boardWidth, boardHeight);
 
     if (gameState !== 'PLAYING' && gameState !== 'CLEARING' && gameState !== 'PAUSED' && gameState !== 'LOGS' && gameState !== 'GAMEOVER' && gameState !== 'STAGECLEAR') return;
 
     ctx.fillStyle = '#1a0f3d';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillRect(0, 0, boardWidth, boardHeight);
     ctx.strokeStyle = 'rgba(255,255,255,0.05)';
     ctx.lineWidth = 1;
     for (let c = 1; c < COLS; c++) {
@@ -1234,17 +1241,17 @@ function drawGame() {
 
     if (flashAlpha > 0) {
         ctx.fillStyle = `rgba(255,217,61,${flashAlpha * 0.22})`;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillRect(0, 0, boardWidth, boardHeight);
     }
 
     if (gameState === 'PAUSED' || gameState === 'LOGS') {
         ctx.fillStyle = 'rgba(20,10,45,0.55)';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillRect(0, 0, boardWidth, boardHeight);
     }
 
     ctx.strokeStyle = 'rgba(255,255,255,0.8)';
     ctx.lineWidth = 3;
-    ctx.strokeRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeRect(0, 0, boardWidth, boardHeight);
 }
 
 function drawConnectedCell(px, py, type, top, bottom, left, right, scale = 1.0) {
@@ -1302,8 +1309,7 @@ function drawCustomRoundRect(x, y, w, h, rtl, rtr, rbr, rbl) {
 function drawNormalWhiteBugAsset(px, py, scale = 1.0) {
     const s = BLOCK_SIZE;
     const isSquashed = Math.floor(performance.now() / 500) % 2 === 1;
-    const idleScaleY = isSquashed ? 0.95 : 1.0;
-    const drawHeight = s * idleScaleY;
+    const drawHeight = isSquashed ? Math.max(1, Math.round(s * 0.95)) : s;
 
     ctx.save();
     ctx.translate(px + s / 2, py + s / 2);
