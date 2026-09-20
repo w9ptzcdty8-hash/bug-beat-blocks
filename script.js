@@ -8,7 +8,7 @@ const nextCanvas = document.getElementById('next-canvas');
 const nextCtx = nextCanvas.getContext('2d');
 
 let COLS = 10;
-let ROWS = 20;
+let ROWS = 18;
 let BLOCK_SIZE = 24;
 
 const BLOCK_COLORS = [1, 2, 3, 4];
@@ -321,7 +321,7 @@ function setupStage(level) {
 
     for (let i = 0; i < bugCount; i++) {
         let x = (i * 3 + 2) % COLS;
-        let y = 19 - Math.floor(i / 2) * 2;
+        let y = ROWS - 1 - Math.floor(i / 2) * 2;
         
         let bugType = 8; 
         let isBat = false;
