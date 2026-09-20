@@ -49,6 +49,17 @@ const BUG_FACE_COLORS = {
     19: '#6a6c75'
 };
 
+const normalWhiteBugImage = new Image();
+let normalWhiteBugImageReady = false;
+normalWhiteBugImage.onload = () => {
+    normalWhiteBugImageReady = true;
+};
+normalWhiteBugImage.onerror = () => {
+    normalWhiteBugImageReady = false;
+};
+normalWhiteBugImage.decoding = 'async';
+normalWhiteBugImage.src = 'assets/images/enemy-normal-white.png';
+
 const SHAPES = [
     [],
     [[1,1,1,1]],
@@ -1288,7 +1299,34 @@ function drawCustomRoundRect(x, y, w, h, rtl, rtr, rbr, rbl) {
     ctx.closePath();
 }
 
+function drawNormalWhiteBugAsset(px, py, scale = 1.0) {
+    const s = BLOCK_SIZE;
+    const isSquashed = Math.floor(performance.now() / 500) % 2 === 1;
+    const idleScaleY = isSquashed ? 0.95 : 1.0;
+    const drawHeight = s * idleScaleY;
+
+    ctx.save();
+    ctx.translate(px + s / 2, py + s / 2);
+    ctx.scale(scale, scale);
+    ctx.translate(-(px + s / 2), -(py + s / 2));
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(
+        normalWhiteBugImage,
+        px,
+        py + s - drawHeight,
+        s,
+        drawHeight
+    );
+    ctx.restore();
+}
+
 function drawBug(px, py, scale = 1.0, bugType = 8) {
+    if (bugType === 8 && normalWhiteBugImageReady) {
+        drawNormalWhiteBugAsset(px, py, scale);
+        return;
+    }
+
     let s = BLOCK_SIZE;
     ctx.save();
 
