@@ -9,6 +9,7 @@
             --pink: #ff9de2;
             --paper: #fffdf7;
             --ink: #2a1550;
+            --ad-banner-height: 52px;
         }
         * {
             box-sizing: border-box;
@@ -51,7 +52,7 @@
             align-items: center;
             justify-content: center;
             z-index: 10;
-            padding: 20px;
+            padding: 20px 20px calc(20px + var(--ad-banner-height) + env(safe-area-inset-bottom));
         }
         .hidden { display: none !important; }
 
@@ -284,6 +285,34 @@
             gap: 8px;
             position: relative;
             overflow: hidden;
+        }
+
+        #ad-banner {
+            position: relative;
+            z-index: 20;
+            width: calc(100% + 16px);
+            min-height: calc(var(--ad-banner-height) + env(safe-area-inset-bottom));
+            margin: 0 -8px -8px;
+            padding-top: 1px;
+            padding-bottom: calc(1px + env(safe-area-inset-bottom));
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            flex-shrink: 0;
+            overflow: hidden;
+            background: #121212;
+            border-top: 1px solid #333;
+        }
+
+        #ad-slot {
+            width: 320px;
+            max-width: 100%;
+            min-height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            touch-action: manipulation;
         }
 
         canvas#gameCanvas {
