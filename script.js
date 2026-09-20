@@ -95,6 +95,7 @@ let animTimer = 0;
 let pendingClearBlocks = [];
 let pendingClearBugs = [];
 let fallingGroups = []; 
+let advanceAfterResolution = true;
 
 let batBugs = [];
 
@@ -313,6 +314,7 @@ function setupStage(level) {
     board = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
     groupBoard = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
     batBugs = [];
+    nextGroupId = 1;
 
     const bugCount = Math.min(level, 7);
     remainingEnemies = bugCount;
@@ -369,13 +371,25 @@ function setupStage(level) {
     normalDropInterval = 1000;
     currentPiece = new Piece(Math.floor(Math.random() * 7) + 1);
     nextPiece = new Piece(Math.floor(Math.random() * 7) + 1);
+    dropCounter = 0;
+    dropInterval = 1000;
+    lastTime = performance.now();
     particles = [];
     popTexts = [];
+    flashAlpha = 0;
+    pendingClearBlocks = [];
+    pendingClearBugs = [];
     fallingGroups = [];
     isAnimating = false;
     isFastDropping = false;
     animPhase = 'NONE';
+    animTimer = 0;
+    advanceAfterResolution = true;
     chainCount = 0;
+    isDragging = false;
+    clearTimeout(holdTimer);
+    holdTimer = null;
+    fastBtn.classList.remove('active');
 
     addLog(`Setup Stage ${level}: ${bugCount} bugs (Bat Bugs: ${batBugs.length})`);
 }
@@ -610,7 +624,8 @@ function mergePiece() {
     }
 }
 
-function processMatches() {
+function processMatches(shouldAdvance = true) {
+    advanceAfterResolution = shouldAdvance;
     let visited = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
     let toClearBlocks = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
     let toClearBugs = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
@@ -695,7 +710,12 @@ function processMatches() {
         animTimer = 0;
         addLog(`Match Found: Chain x${chainCount}`);
     } else {
-        advancePiece();
+        if (advanceAfterResolution) {
+            advancePiece();
+        } else {
+            isAnimating = false;
+            animPhase = 'NONE';
+        }
     }
 }
 
@@ -764,7 +784,7 @@ function updateAnimation(dt) {
             addLog(`Cleared ${clearedCount} blocks, Defeated ${killed} bugs (Chain x${chainCount}). Remaining: ${remainingEnemies}`);
 
             resplitDisconnectedGroups();
-            setupGroupGravityAnimation(true);
+            setupGroupGravityAnimation(advanceAfterResolution);
         }
     } else if (animPhase === 'FALLING') {
         updateFallingGroups(dt);
@@ -858,12 +878,30 @@ function setupGroupGravityAnimation(triggerNextPiece = true) {
     }
 
     if (components.length === 0) {
-        if (triggerNextPiece) advancePiece();
+        if (triggerNextPiece) {
+            advancePiece();
+        } else {
+            isAnimating = false;
+            animPhase = 'NONE';
+        }
         return;
     }
 
     let simB = Array.from({ length: ROWS }, (_, r) => [...board[r]]);
     let simG = Array.from({ length: ROWS }, (_, r) => [...groupBoard[r]]);
+
+    if (!triggerNextPiece && currentPiece) {
+        currentPiece.shape.forEach((row, r) => {
+            row.forEach((val, c) => {
+                if (!val) return;
+                const boardR = currentPiece.y + r;
+                const boardC = currentPiece.x + c;
+                if (boardR >= 0 && boardR < ROWS && boardC >= 0 && boardC < COLS && simB[boardR][boardC] === 0) {
+                    simB[boardR][boardC] = -2;
+                }
+            });
+        });
+    }
 
     let movedAny = true;
     while (movedAny) {
@@ -928,11 +966,18 @@ function setupGroupGravityAnimation(triggerNextPiece = true) {
             });
         });
 
+        isAnimating = true;
+        advanceAfterResolution = triggerNextPiece;
         animPhase = 'FALLING';
         animTimer = 0;
         addLog(`Gravity Fall Triggered: ${fallingGroups.length} groups moving`);
     } else {
-        if (triggerNextPiece) advancePiece();
+        if (triggerNextPiece) {
+            advancePiece();
+        } else {
+            isAnimating = false;
+            animPhase = 'NONE';
+        }
     }
 }
 
@@ -963,7 +1008,7 @@ function updateFallingGroups(dt) {
         });
         fallingGroups = [];
         
-        processMatches();
+        processMatches(advanceAfterResolution);
     }
 }
 
@@ -1377,6 +1422,8 @@ let holdTimer = null;
 function stopHoldFastDrop() {
     isFastDropping = false;
     clearTimeout(holdTimer);
+    holdTimer = null;
+    fastBtn.classList.remove('active');
 }
 
 canvas.addEventListener('pointerdown', e => {
