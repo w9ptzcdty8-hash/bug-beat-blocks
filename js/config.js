@@ -54,7 +54,8 @@ const NORMAL_BUG_ASSET_SOURCES = {
     9: 'assets/images/enemy-normal-yellow.png',
     10: 'assets/images/enemy-normal-blue.png',
     11: 'assets/images/enemy-normal-red.png',
-    12: 'assets/images/enemy-normal-pink.png'
+    12: 'assets/images/enemy-normal-pink.png',
+    13: 'assets/images/enemy-normal-metal.png'
 };
 
 const normalBugImages = {};
