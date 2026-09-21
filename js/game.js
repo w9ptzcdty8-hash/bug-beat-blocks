@@ -67,6 +67,9 @@ function setupStage(level) {
     flashAlpha = 0;
     pendingClearBlocks = [];
     pendingClearBugs = [];
+    pendingRainbowClearBlocks = [];
+    pendingRainbowColors = [];
+    pendingRainbowSourceCells = [];
     fallingGroups = [];
     isAnimating = false;
     isFastDropping = false;
@@ -201,7 +204,7 @@ function checkAndTriggerFloatingBlocksGravity() {
     for (let r = 0; r < ROWS - 1; r++) {
         for (let c = 0; c < COLS; c++) {
             let type = board[r][c];
-            if (type >= 1 && type <= 4) {
+            if (type >= 1 && type <= RAINBOW_BLOCK) {
                 if (board[r + 1][c] === 0) {
                     hasFloating = true;
                     break;
@@ -236,11 +239,26 @@ function drawMiniPiece(targetCtx, targetCanvas, piece) {
     shape.forEach((row, r) => {
         row.forEach((val, c) => {
             if (val) {
-                targetCtx.fillStyle = COLORS[val];
-                targetCtx.fillRect(startX + c * size, startY + r * size, size - 1, size - 1);
-                targetCtx.strokeStyle = 'rgba(0,0,0,0.15)';
-                targetCtx.lineWidth = 1;
-                targetCtx.strokeRect(startX + c * size, startY + r * size, size - 1, size - 1);
+                if (val === RAINBOW_BLOCK) {
+                    const x = startX + c * size;
+                    const y = startY + r * size;
+                    const pulse = 0.65 + Math.sin(performance.now() / 150) * 0.25;
+                    targetCtx.save();
+                    targetCtx.shadowColor = `rgba(255,255,255,${pulse})`;
+                    targetCtx.shadowBlur = 8;
+                    targetCtx.fillStyle = createRainbowGradient(targetCtx, x, y, size, size, (performance.now() / 3000) % 1);
+                    targetCtx.fillRect(x, y, size - 1, size - 1);
+                    targetCtx.strokeStyle = 'rgba(255,255,255,0.95)';
+                    targetCtx.lineWidth = 1.5;
+                    targetCtx.strokeRect(x + 0.5, y + 0.5, size - 2, size - 2);
+                    targetCtx.restore();
+                } else {
+                    targetCtx.fillStyle = COLORS[val];
+                    targetCtx.fillRect(startX + c * size, startY + r * size, size - 1, size - 1);
+                    targetCtx.strokeStyle = 'rgba(0,0,0,0.15)';
+                    targetCtx.lineWidth = 1;
+                    targetCtx.strokeRect(startX + c * size, startY + r * size, size - 1, size - 1);
+                }
             }
         });
     });
@@ -317,6 +335,14 @@ function processMatches(shouldAdvance = true) {
     let visited = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
     let toClearBlocks = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
     let toClearBugs = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
+    let rainbowClearBlocks = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
+    let rainbowMatchedColors = new Set();
+    let matchedRainbowCells = new Set();
+
+    const getNeighbors = (r, c) => [
+        { r: r - 1, c }, { r: r + 1, c },
+        { r, c: c - 1 }, { r, c: c + 1 }
+    ].filter(cell => cell.r >= 0 && cell.r < ROWS && cell.c >= 0 && cell.c < COLS);
 
     for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
@@ -330,25 +356,67 @@ function processMatches(shouldAdvance = true) {
                     let curr = queue.pop();
                     group.push(curr);
 
-                    let neighbors = [
-                        { r: curr.r - 1, c: curr.c },
-                        { r: curr.r + 1, c: curr.c },
-                        { r: curr.r, c: curr.c - 1 },
-                        { r: curr.r, c: curr.c + 1 }
-                    ];
-
-                    for (let n of neighbors) {
-                        if (n.r >= 0 && n.r < ROWS && n.c >= 0 && n.c < COLS) {
-                            if (!visited[n.r][n.c] && board[n.r][n.c] === color) {
-                                visited[n.r][n.c] = true;
-                                queue.push(n);
-                            }
+                    for (let n of getNeighbors(curr.r, curr.c)) {
+                        if (!visited[n.r][n.c] && board[n.r][n.c] === color) {
+                            visited[n.r][n.c] = true;
+                            queue.push(n);
                         }
                     }
                 }
 
                 if (group.length >= 4) {
                     group.forEach(cell => { toClearBlocks[cell.r][cell.c] = true; });
+                }
+            }
+        }
+    }
+
+    // 虹色を各通常色の代わりとして個別に判定する。
+    // 同じ虹色が赤と青の両方で条件を満たした場合は、両色とも全消去対象になる。
+    for (let rainbowR = 0; rainbowR < ROWS; rainbowR++) {
+        for (let rainbowC = 0; rainbowC < COLS; rainbowC++) {
+            if (board[rainbowR][rainbowC] !== RAINBOW_BLOCK) continue;
+
+            for (let color = 1; color <= 4; color++) {
+                const colorVisited = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
+                const group = [];
+                const queue = [{ r: rainbowR, c: rainbowC }];
+                colorVisited[rainbowR][rainbowC] = true;
+                let containsColor = false;
+
+                while (queue.length > 0) {
+                    const curr = queue.pop();
+                    const currType = board[curr.r][curr.c];
+                    group.push(curr);
+                    if (currType === color) containsColor = true;
+
+                    for (let n of getNeighbors(curr.r, curr.c)) {
+                        const neighborType = board[n.r][n.c];
+                        if (!colorVisited[n.r][n.c] && (neighborType === color || neighborType === RAINBOW_BLOCK)) {
+                            colorVisited[n.r][n.c] = true;
+                            queue.push(n);
+                        }
+                    }
+                }
+
+                if (containsColor && group.length >= 4) {
+                    rainbowMatchedColors.add(color);
+                    group.forEach(cell => {
+                        if (board[cell.r][cell.c] === RAINBOW_BLOCK) {
+                            matchedRainbowCells.add(`${cell.r},${cell.c}`);
+                        }
+                    });
+                }
+            }
+        }
+    }
+
+    if (rainbowMatchedColors.size > 0) {
+        for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS; c++) {
+                if (rainbowMatchedColors.has(board[r][c]) || matchedRainbowCells.has(`${r},${c}`)) {
+                    toClearBlocks[r][c] = true;
+                    rainbowClearBlocks[r][c] = true;
                 }
             }
         }
@@ -361,24 +429,19 @@ function processMatches(shouldAdvance = true) {
                 hasClear = true;
                 let blockColor = board[r][c];
 
-                let neighbors = [
-                    { r: r - 1, c: c }, { r: r + 1, c: c },
-                    { r: r, c: c - 1 }, { r: r, c: c + 1 }
-                ];
+                for (let n of getNeighbors(r, c)) {
+                    let bugType = board[n.r][n.c];
 
-                for (let n of neighbors) {
-                    if (n.r >= 0 && n.r < ROWS && n.c >= 0 && n.c < COLS) {
-                        let bugType = board[n.r][n.c];
-
-                        if (bugType === 8 || bugType === 13 || bugType === 14 || bugType === 19) {
+                    if (bugType >= 8 && bugType <= 19) {
+                        if (rainbowClearBlocks[r][c]) {
                             toClearBugs[n.r][n.c] = true;
-                        }
-                        else if (bugType >= 9 && bugType <= 12) {
+                        } else if (bugType === 8 || bugType === 13 || bugType === 14 || bugType === 19) {
+                            toClearBugs[n.r][n.c] = true;
+                        } else if (bugType >= 9 && bugType <= 12) {
                             if (bugType - 8 === blockColor) {
                                 toClearBugs[n.r][n.c] = true;
                             }
-                        }
-                        else if (bugType >= 15 && bugType <= 18) {
+                        } else if (bugType >= 15 && bugType <= 18) {
                             if (bugType - 14 === blockColor) {
                                 toClearBugs[n.r][n.c] = true;
                             }
@@ -393,10 +456,19 @@ function processMatches(shouldAdvance = true) {
         chainCount++;
         pendingClearBlocks = toClearBlocks;
         pendingClearBugs = toClearBugs;
+        pendingRainbowClearBlocks = rainbowClearBlocks;
+        pendingRainbowColors = [...rainbowMatchedColors];
+        pendingRainbowSourceCells = [...matchedRainbowCells].map(key => {
+            const [r, c] = key.split(',').map(Number);
+            return { r, c };
+        });
         isAnimating = true;
         animPhase = 'WAIT_CLEAR';
         animTimer = 0;
-        addLog(`Match Found: Chain x${chainCount}`);
+        const rainbowLog = pendingRainbowColors.length > 0
+            ? ` Rainbow colors: ${pendingRainbowColors.join(',')}`
+            : '';
+        addLog(`Match Found: Chain x${chainCount}.${rainbowLog}`);
     } else {
         if (advanceAfterResolution) {
             advancePiece();
@@ -411,7 +483,9 @@ function updateAnimation(dt) {
     animTimer += dt;
 
     if (animPhase === 'WAIT_CLEAR') {
-        let clearWaitTime = normalDropInterval / 2;
+        let clearWaitTime = pendingRainbowColors.length > 0
+            ? RAINBOW_CLEAR_DURATION
+            : normalDropInterval / 2;
         if (animTimer >= clearWaitTime) {
             let killed = 0;
             let clearedCount = 0;
@@ -459,8 +533,12 @@ function updateAnimation(dt) {
             if (clearedCount > 0) {
                 let popX = centerSumX / clearedCount;
                 let popY = centerSumY / clearedCount;
-                let textStr = chainCount > 1 ? `${chainCount}x CHAIN!!` : 'BOOM!';
-                let textColor = chainCount > 1 ? '#ffd93d' : '#4fffb0';
+                let textStr = pendingRainbowColors.length > 0
+                    ? `RAINBOW x${pendingRainbowColors.length}!`
+                    : (chainCount > 1 ? `${chainCount}x CHAIN!!` : 'BOOM!');
+                let textColor = pendingRainbowColors.length > 0
+                    ? '#ffffff'
+                    : (chainCount > 1 ? '#ffd93d' : '#4fffb0');
                 spawnPopText(popX, popY, textStr, textColor);
             }
 
@@ -485,7 +563,7 @@ function resplitDisconnectedGroups() {
     for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
             let type = board[r][c];
-            if (type >= 1 && type <= 4 && !visited[r][c]) {
+            if (type >= 1 && type <= RAINBOW_BLOCK && !visited[r][c]) {
                 let originalGId = groupBoard[r][c];
                 let comp = [];
                 let queue = [{ r, c }];
@@ -504,7 +582,7 @@ function resplitDisconnectedGroups() {
 
                     for (let n of neighbors) {
                         if (n.r >= 0 && n.r < ROWS && n.c >= 0 && n.c < COLS) {
-                            if (!visited[n.r][n.c] && board[n.r][n.c] >= 1 && board[n.r][n.c] <= 4 && groupBoard[n.r][n.c] === originalGId) {
+                            if (!visited[n.r][n.c] && board[n.r][n.c] >= 1 && board[n.r][n.c] <= RAINBOW_BLOCK && groupBoard[n.r][n.c] === originalGId) {
                                 visited[n.r][n.c] = true;
                                 queue.push(n);
                             }
@@ -529,7 +607,7 @@ function setupGroupGravityAnimation(triggerNextPiece = true) {
     for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
             let type = board[r][c];
-            if (type >= 1 && type <= 4 && !compVisited[r][c]) {
+            if (type >= 1 && type <= RAINBOW_BLOCK && !compVisited[r][c]) {
                 let targetGId = groupBoard[r][c];
                 let compCells = [];
                 let queue = [{ r, c }];
@@ -549,7 +627,7 @@ function setupGroupGravityAnimation(triggerNextPiece = true) {
                     for (let n of neighbors) {
                         if (n.r >= 0 && n.r < ROWS && n.c >= 0 && n.c < COLS) {
                             let nType = board[n.r][n.c];
-                            if (!compVisited[n.r][n.c] && nType >= 1 && nType <= 4 && groupBoard[n.r][n.c] === targetGId) {
+                            if (!compVisited[n.r][n.c] && nType >= 1 && nType <= RAINBOW_BLOCK && groupBoard[n.r][n.c] === targetGId) {
                                 compVisited[n.r][n.c] = true;
                                 queue.push(n);
                             }

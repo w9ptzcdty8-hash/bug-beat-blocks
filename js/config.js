@@ -12,6 +12,20 @@ let ROWS = 18;
 let BLOCK_SIZE = 24;
 
 const BLOCK_COLORS = [1, 2, 3, 4];
+const RAINBOW_BLOCK = 5;
+const RAINBOW_PIECE_CHANCE = 0.05;
+const RAINBOW_CLEAR_DURATION = 850;
+
+function createRainbowGradient(targetCtx, x, y, width, height, offset = 0) {
+    const gradient = targetCtx.createLinearGradient(x, y, x + width, y + height);
+    const rainbowColors = ['#ff4f81', '#ff9f43', '#ffe66d', '#4fffb0', '#4dd2ff', '#8b7cff', '#ff9de2'];
+    const colorShift = Math.floor(offset * rainbowColors.length) % rainbowColors.length;
+    rainbowColors.forEach((color, index) => {
+        const shiftedColor = rainbowColors[(index + colorShift) % rainbowColors.length];
+        gradient.addColorStop(index / (rainbowColors.length - 1), shiftedColor);
+    });
+    return gradient;
+}
 
 const COLORS = [
     null,
@@ -142,6 +156,9 @@ let animPhase = 'NONE';
 let animTimer = 0;
 let pendingClearBlocks = [];
 let pendingClearBugs = [];
+let pendingRainbowClearBlocks = [];
+let pendingRainbowColors = [];
+let pendingRainbowSourceCells = [];
 let fallingGroups = [];
 let advanceAfterResolution = true;
 
@@ -164,6 +181,18 @@ class Piece {
         this.shape = this.baseShape.map(row =>
             row.map(val => val ? BLOCK_COLORS[Math.floor(Math.random() * 4)] : 0)
         );
+
+        if (Math.random() < RAINBOW_PIECE_CHANCE) {
+            const occupiedCells = [];
+            this.shape.forEach((row, r) => {
+                row.forEach((val, c) => {
+                    if (val) occupiedCells.push({ r, c });
+                });
+            });
+            const rainbowCell = occupiedCells[Math.floor(Math.random() * occupiedCells.length)];
+            this.shape[rainbowCell.r][rainbowCell.c] = RAINBOW_BLOCK;
+        }
+
         this.x = Math.floor((COLS - this.shape[0].length) / 2);
         this.y = 0;
     }
