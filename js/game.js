@@ -69,6 +69,7 @@ function setupStage(level) {
     pendingClearBugs = [];
     pendingRainbowClearBlocks = [];
     pendingRainbowColors = [];
+    pendingRainbowSourceCells = [];
     fallingGroups = [];
     isAnimating = false;
     isFastDropping = false;
@@ -239,25 +240,25 @@ function drawMiniPiece(targetCtx, targetCanvas, piece) {
         row.forEach((val, c) => {
             if (val) {
                 if (val === RAINBOW_BLOCK) {
-                    const gradient = targetCtx.createLinearGradient(
-                        startX + c * size,
-                        startY + r * size,
-                        startX + (c + 1) * size,
-                        startY + (r + 1) * size
-                    );
-                    gradient.addColorStop(0, '#ff6f61');
-                    gradient.addColorStop(0.25, '#ffd93d');
-                    gradient.addColorStop(0.5, '#4fffb0');
-                    gradient.addColorStop(0.75, '#4dd2ff');
-                    gradient.addColorStop(1, '#ff9de2');
-                    targetCtx.fillStyle = gradient;
+                    const x = startX + c * size;
+                    const y = startY + r * size;
+                    const pulse = 0.65 + Math.sin(performance.now() / 150) * 0.25;
+                    targetCtx.save();
+                    targetCtx.shadowColor = `rgba(255,255,255,${pulse})`;
+                    targetCtx.shadowBlur = 8;
+                    targetCtx.fillStyle = createRainbowGradient(targetCtx, x, y, size, size, (performance.now() / 3000) % 1);
+                    targetCtx.fillRect(x, y, size - 1, size - 1);
+                    targetCtx.strokeStyle = 'rgba(255,255,255,0.95)';
+                    targetCtx.lineWidth = 1.5;
+                    targetCtx.strokeRect(x + 0.5, y + 0.5, size - 2, size - 2);
+                    targetCtx.restore();
                 } else {
                     targetCtx.fillStyle = COLORS[val];
+                    targetCtx.fillRect(startX + c * size, startY + r * size, size - 1, size - 1);
+                    targetCtx.strokeStyle = 'rgba(0,0,0,0.15)';
+                    targetCtx.lineWidth = 1;
+                    targetCtx.strokeRect(startX + c * size, startY + r * size, size - 1, size - 1);
                 }
-                targetCtx.fillRect(startX + c * size, startY + r * size, size - 1, size - 1);
-                targetCtx.strokeStyle = 'rgba(0,0,0,0.15)';
-                targetCtx.lineWidth = 1;
-                targetCtx.strokeRect(startX + c * size, startY + r * size, size - 1, size - 1);
             }
         });
     });
@@ -457,6 +458,10 @@ function processMatches(shouldAdvance = true) {
         pendingClearBugs = toClearBugs;
         pendingRainbowClearBlocks = rainbowClearBlocks;
         pendingRainbowColors = [...rainbowMatchedColors];
+        pendingRainbowSourceCells = [...matchedRainbowCells].map(key => {
+            const [r, c] = key.split(',').map(Number);
+            return { r, c };
+        });
         isAnimating = true;
         animPhase = 'WAIT_CLEAR';
         animTimer = 0;
@@ -478,7 +483,9 @@ function updateAnimation(dt) {
     animTimer += dt;
 
     if (animPhase === 'WAIT_CLEAR') {
-        let clearWaitTime = normalDropInterval / 2;
+        let clearWaitTime = pendingRainbowColors.length > 0
+            ? RAINBOW_CLEAR_DURATION
+            : normalDropInterval / 2;
         if (animTimer >= clearWaitTime) {
             let killed = 0;
             let clearedCount = 0;
