@@ -195,9 +195,9 @@ function drawCustomRoundRect(x, y, w, h, rtl, rtr, rbr, rbl) {
     ctx.closePath();
 }
 
-function drawNormalBugAsset(px, py, scale = 1.0, bugType = 8) {
+function drawNormalBugAsset(px, py, scale = 1.0, bugType = 8, animateIdle = true) {
     const s = BLOCK_SIZE;
-    const isSquashed = Math.floor(performance.now() / 500) % 2 === 1;
+    const isSquashed = animateIdle && Math.floor(performance.now() / 500) % 2 === 1;
     const idleScaleY = isSquashed ? 0.95 : 1.0;
     const drawHeight = s * idleScaleY;
 
@@ -270,6 +270,36 @@ function drawBug(px, py, scale = 1.0, bugType = 8) {
 
 function drawBatBug(px, py, scale = 1.0, dir = 1, bugType = 14) {
     let s = BLOCK_SIZE;
+    const bodyBugType = bugType - 6;
+
+    if (
+        normalBugImageReady[bodyBugType] &&
+        batWingImageReady.up &&
+        batWingImageReady.down
+    ) {
+        const wingFrame = Math.floor(performance.now() / 250) % 2 === 0 ? 'up' : 'down';
+        const wingWidth = s * 1.8;
+        const wingHeight = wingWidth / 2;
+
+        ctx.save();
+        ctx.translate(px + s / 2, py + s / 2);
+        ctx.scale(scale, scale);
+        ctx.translate(-(px + s / 2), -(py + s / 2));
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(
+            batWingImages[wingFrame],
+            px + (s - wingWidth) / 2,
+            py + (s - wingHeight) / 2,
+            wingWidth,
+            wingHeight
+        );
+        ctx.restore();
+
+        drawNormalBugAsset(px, py, scale, bodyBugType, false);
+        return;
+    }
+
     ctx.save();
 
     ctx.translate(px + s / 2, py + s / 2);
