@@ -12,6 +12,9 @@ let ROWS = 18;
 let BLOCK_SIZE = 24;
 
 const BLOCK_COLORS = [1, 2, 3, 4];
+const RAINBOW_BLOCK = 5;
+// テスト用。mainへマージする前に本番向けの低確率へ変更する。
+const RAINBOW_PIECE_CHANCE = 0.2;
 
 const COLORS = [
     null,
@@ -142,6 +145,8 @@ let animPhase = 'NONE';
 let animTimer = 0;
 let pendingClearBlocks = [];
 let pendingClearBugs = [];
+let pendingRainbowClearBlocks = [];
+let pendingRainbowColors = [];
 let fallingGroups = [];
 let advanceAfterResolution = true;
 
@@ -164,6 +169,18 @@ class Piece {
         this.shape = this.baseShape.map(row =>
             row.map(val => val ? BLOCK_COLORS[Math.floor(Math.random() * 4)] : 0)
         );
+
+        if (Math.random() < RAINBOW_PIECE_CHANCE) {
+            const occupiedCells = [];
+            this.shape.forEach((row, r) => {
+                row.forEach((val, c) => {
+                    if (val) occupiedCells.push({ r, c });
+                });
+            });
+            const rainbowCell = occupiedCells[Math.floor(Math.random() * occupiedCells.length)];
+            this.shape[rainbowCell.r][rainbowCell.c] = RAINBOW_BLOCK;
+        }
+
         this.x = Math.floor((COLS - this.shape[0].length) / 2);
         this.y = 0;
     }
