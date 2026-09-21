@@ -287,6 +287,15 @@
             overflow: hidden;
         }
 
+        #play-area,
+        canvas#gameCanvas,
+        #side-panel,
+        #controls-panel,
+        .ctrl-btn {
+            -webkit-touch-callout: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
         #ad-banner {
             position: relative;
             z-index: 20;

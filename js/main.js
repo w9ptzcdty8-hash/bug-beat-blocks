@@ -1,0 +1,2 @@
+changeScreen('TITLE');
+requestAnimationFrame(update);
