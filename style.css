@@ -57,10 +57,15 @@
         .hidden { display: none !important; }
 
         .badge {
-            width: 120px;
+            width: 180px;
+            max-width: 52vw;
             height: auto;
-            margin-bottom: 14px;
+            margin-bottom: 10px;
             filter: drop-shadow(0 8px 0 rgba(0,0,0,0.15));
+            pointer-events: none;
+            -webkit-touch-callout: none;
+            user-select: none;
+            -webkit-user-select: none;
         }
 
         h1.title {
