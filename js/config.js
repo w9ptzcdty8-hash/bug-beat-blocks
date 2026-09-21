@@ -75,6 +75,28 @@ Object.entries(NORMAL_BUG_ASSET_SOURCES).forEach(([bugType, src]) => {
     normalBugImages[bugType] = image;
 });
 
+const BAT_WING_ASSET_SOURCES = {
+    up: 'assets/images/bat-wings-up.png',
+    down: 'assets/images/bat-wings-down.png'
+};
+
+const batWingImages = {};
+const batWingImageReady = {};
+
+Object.entries(BAT_WING_ASSET_SOURCES).forEach(([frame, src]) => {
+    const image = new Image();
+    batWingImageReady[frame] = false;
+    image.onload = () => {
+        batWingImageReady[frame] = true;
+    };
+    image.onerror = () => {
+        batWingImageReady[frame] = false;
+    };
+    image.decoding = 'async';
+    image.src = src;
+    batWingImages[frame] = image;
+});
+
 const SHAPES = [
     [],
     [[1,1,1,1]],
