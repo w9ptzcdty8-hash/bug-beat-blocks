@@ -32,8 +32,16 @@ function drawGame() {
 
                 let scale = 1.0;
                 if (animPhase === 'WAIT_CLEAR' && pendingClearBlocks[r][c]) {
-                    let progress = animTimer / (normalDropInterval / 2);
-                    scale = Math.max(0, 1.0 - progress * 0.8);
+                    const clearDuration = pendingRainbowColors.length > 0
+                        ? RAINBOW_CLEAR_DURATION
+                        : normalDropInterval / 2;
+                    let progress = Math.min(1, animTimer / clearDuration);
+                    if (pendingRainbowClearBlocks[r][c]) {
+                        const shrinkProgress = Math.max(0, (progress - 0.72) / 0.28);
+                        scale = Math.max(0, 1.0 - shrinkProgress);
+                    } else {
+                        scale = Math.max(0.2, 1.0 - progress * 0.8);
+                    }
                 }
 
                 if (board[r][c] >= 8 && board[r][c] <= 13) {
@@ -43,10 +51,9 @@ function drawGame() {
                     let b = (r < ROWS - 1 && groupBoard[r + 1][c] === gId);
                     let l = (c > 0 && groupBoard[r][c - 1] === gId);
                     let rRight = (c < COLS - 1 && groupBoard[r][c + 1] === gId);
-                    const renderType = animPhase === 'WAIT_CLEAR' && pendingRainbowClearBlocks[r][c]
-                        ? RAINBOW_BLOCK
-                        : board[r][c];
-                    drawConnectedCell(px, py, renderType, t, b, l, rRight, scale);
+                    const rainbowMix = getRainbowConversionProgress(r, c);
+                    const rainbowFlash = getRainbowPreFlash(r, c);
+                    drawConnectedCell(px, py, board[r][c], t, b, l, rRight, scale, rainbowMix, rainbowFlash);
                 }
             }
         }
@@ -57,7 +64,10 @@ function drawGame() {
         let py = b.row * BLOCK_SIZE;
         let scale = 1.0;
         if (animPhase === 'WAIT_CLEAR' && pendingClearBugs[b.row][Math.round(b.posX)]) {
-            let progress = animTimer / (normalDropInterval / 2);
+            const clearDuration = pendingRainbowColors.length > 0
+                ? RAINBOW_CLEAR_DURATION
+                : normalDropInterval / 2;
+            let progress = animTimer / clearDuration;
             scale = Math.max(0, 1.0 - progress * 0.8);
         }
         drawBatBug(px, py, scale, b.dir, b.type);
@@ -146,7 +156,29 @@ function drawGame() {
     ctx.strokeRect(0, 0, canvas.width, canvas.height);
 }
 
-function drawConnectedCell(px, py, type, top, bottom, left, right, scale = 1.0) {
+function getRainbowConversionProgress(row, col) {
+    if (board[row]?.[col] === RAINBOW_BLOCK) return 1;
+    if (animPhase !== 'WAIT_CLEAR' || !pendingRainbowClearBlocks[row]?.[col]) return 0;
+
+    const overallProgress = Math.min(1, animTimer / RAINBOW_CLEAR_DURATION);
+    const nearestDistance = pendingRainbowSourceCells.length > 0
+        ? Math.min(...pendingRainbowSourceCells.map(cell => Math.abs(cell.r - row) + Math.abs(cell.c - col)))
+        : 0;
+    const maxDistance = ROWS + COLS - 2;
+    const waveDelay = (nearestDistance / maxDistance) * 0.38;
+    return Math.max(0, Math.min(1, (overallProgress - waveDelay) / 0.28));
+}
+
+function getRainbowPreFlash(row, col) {
+    if (animPhase !== 'WAIT_CLEAR' || !pendingRainbowClearBlocks[row]?.[col]) return 0;
+    if (board[row]?.[col] === RAINBOW_BLOCK) return 0;
+
+    const overallProgress = Math.min(1, animTimer / RAINBOW_CLEAR_DURATION);
+    if (overallProgress >= 0.16) return 0;
+    return Math.sin((overallProgress / 0.16) * Math.PI) * 0.75;
+}
+
+function drawConnectedCell(px, py, type, top, bottom, left, right, scale = 1.0, rainbowMix = type === RAINBOW_BLOCK ? 1 : 0, preFlash = 0) {
     let base = COLORS[type];
     let radius = Math.max(3, BLOCK_SIZE * 0.24);
 
@@ -168,26 +200,53 @@ function drawConnectedCell(px, py, type, top, bottom, left, right, scale = 1.0) 
         ctx.translate(-(px + BLOCK_SIZE / 2), -(py + BLOCK_SIZE / 2));
     }
 
-    drawCustomRoundRect(x, y, w, h, rTL, rTR, rBR, rBL);
-    if (type === RAINBOW_BLOCK) {
-        const gradient = ctx.createLinearGradient(x, y, x + w, y + h);
-        gradient.addColorStop(0, '#ff6f61');
-        gradient.addColorStop(0.25, '#ffd93d');
-        gradient.addColorStop(0.5, '#4fffb0');
-        gradient.addColorStop(0.75, '#4dd2ff');
-        gradient.addColorStop(1, '#ff9de2');
-        ctx.fillStyle = gradient;
-    } else {
-        ctx.fillStyle = base;
+    const pulse = 0.65 + Math.sin(performance.now() / 130) * 0.25;
+    if (rainbowMix > 0) {
+        ctx.shadowColor = `rgba(255,255,255,${pulse * rainbowMix})`;
+        ctx.shadowBlur = BLOCK_SIZE * (0.15 + 0.22 * rainbowMix);
     }
+
+    drawCustomRoundRect(x, y, w, h, rTL, rTR, rBR, rBL);
+    ctx.fillStyle = type === RAINBOW_BLOCK ? createRainbowGradient(ctx, x, y, w, h) : base;
     ctx.fill();
+
+    if (rainbowMix > 0 && type !== RAINBOW_BLOCK) {
+        ctx.save();
+        ctx.globalAlpha = rainbowMix;
+        drawCustomRoundRect(x, y, w, h, rTL, rTR, rBR, rBL);
+        ctx.fillStyle = createRainbowGradient(ctx, x, y, w, h, (performance.now() / 3000) % 1);
+        ctx.fill();
+        ctx.restore();
+    }
+
+    if (preFlash > 0) {
+        ctx.save();
+        ctx.globalAlpha = preFlash;
+        drawCustomRoundRect(x, y, w, h, rTL, rTR, rBR, rBL);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+        ctx.restore();
+    }
 
     ctx.fillStyle = 'rgba(255,255,255,0.3)';
     drawCustomRoundRect(x + 1.5, y + 1.5, w - 3, Math.max(2, h * 0.35), rTL * 0.7, rTR * 0.7, 0, 0);
     ctx.fill();
 
-    ctx.strokeStyle = 'rgba(0,0,0,0.2)';
-    ctx.lineWidth = 1.2;
+    if (rainbowMix > 0) {
+        drawCustomRoundRect(x, y, w, h, rTL, rTR, rBR, rBL);
+        ctx.clip();
+        const shinePosition = ((performance.now() / 650) % 1.8) - 0.4;
+        const shineX = x + w * shinePosition;
+        const shine = ctx.createLinearGradient(shineX - w * 0.2, y, shineX + w * 0.2, y + h);
+        shine.addColorStop(0, 'rgba(255,255,255,0)');
+        shine.addColorStop(0.5, `rgba(255,255,255,${0.75 * rainbowMix})`);
+        shine.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.fillStyle = shine;
+        ctx.fillRect(x, y, w, h);
+    }
+
+    ctx.strokeStyle = rainbowMix > 0 ? `rgba(255,255,255,${0.75 + pulse * 0.25})` : 'rgba(0,0,0,0.2)';
+    ctx.lineWidth = rainbowMix > 0 ? 2 : 1.2;
     drawCustomRoundRect(x, y, w, h, rTL, rTR, rBR, rBL);
     ctx.stroke();
 
