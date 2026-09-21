@@ -15,6 +15,18 @@ const BLOCK_COLORS = [1, 2, 3, 4];
 const RAINBOW_BLOCK = 5;
 // テスト用。mainへマージする前に本番向けの低確率へ変更する。
 const RAINBOW_PIECE_CHANCE = 0.2;
+const RAINBOW_CLEAR_DURATION = 850;
+
+function createRainbowGradient(targetCtx, x, y, width, height, offset = 0) {
+    const gradient = targetCtx.createLinearGradient(x, y, x + width, y + height);
+    const rainbowColors = ['#ff4f81', '#ff9f43', '#ffe66d', '#4fffb0', '#4dd2ff', '#8b7cff', '#ff9de2'];
+    const colorShift = Math.floor(offset * rainbowColors.length) % rainbowColors.length;
+    rainbowColors.forEach((color, index) => {
+        const shiftedColor = rainbowColors[(index + colorShift) % rainbowColors.length];
+        gradient.addColorStop(index / (rainbowColors.length - 1), shiftedColor);
+    });
+    return gradient;
+}
 
 const COLORS = [
     null,
@@ -147,6 +159,7 @@ let pendingClearBlocks = [];
 let pendingClearBugs = [];
 let pendingRainbowClearBlocks = [];
 let pendingRainbowColors = [];
+let pendingRainbowSourceCells = [];
 let fallingGroups = [];
 let advanceAfterResolution = true;
 
