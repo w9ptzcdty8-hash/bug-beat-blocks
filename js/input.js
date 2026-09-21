@@ -3,6 +3,18 @@ let initialPieceX = 0;
 let isDragging = false;
 let holdTimer = null;
 
+function preventNativeTouchGesture(e) {
+    if (e.cancelable) {
+        e.preventDefault();
+    }
+}
+
+// iOSのダブルタップ後の長押しで表示されるルーペなど、
+// Canvas上のネイティブタッチ操作をジェスチャー開始時から抑止する。
+['touchstart', 'touchmove', 'touchend', 'touchcancel'].forEach(eventName => {
+    canvas.addEventListener(eventName, preventNativeTouchGesture, { passive: false });
+});
+
 function stopHoldFastDrop() {
     isFastDropping = false;
     clearTimeout(holdTimer);
