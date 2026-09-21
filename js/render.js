@@ -43,7 +43,10 @@ function drawGame() {
                     let b = (r < ROWS - 1 && groupBoard[r + 1][c] === gId);
                     let l = (c > 0 && groupBoard[r][c - 1] === gId);
                     let rRight = (c < COLS - 1 && groupBoard[r][c + 1] === gId);
-                    drawConnectedCell(px, py, board[r][c], t, b, l, rRight, scale);
+                    const renderType = animPhase === 'WAIT_CLEAR' && pendingRainbowClearBlocks[r][c]
+                        ? RAINBOW_BLOCK
+                        : board[r][c];
+                    drawConnectedCell(px, py, renderType, t, b, l, rRight, scale);
                 }
             }
         }
@@ -166,7 +169,17 @@ function drawConnectedCell(px, py, type, top, bottom, left, right, scale = 1.0) 
     }
 
     drawCustomRoundRect(x, y, w, h, rTL, rTR, rBR, rBL);
-    ctx.fillStyle = base;
+    if (type === RAINBOW_BLOCK) {
+        const gradient = ctx.createLinearGradient(x, y, x + w, y + h);
+        gradient.addColorStop(0, '#ff6f61');
+        gradient.addColorStop(0.25, '#ffd93d');
+        gradient.addColorStop(0.5, '#4fffb0');
+        gradient.addColorStop(0.75, '#4dd2ff');
+        gradient.addColorStop(1, '#ff9de2');
+        ctx.fillStyle = gradient;
+    } else {
+        ctx.fillStyle = base;
+    }
     ctx.fill();
 
     ctx.fillStyle = 'rgba(255,255,255,0.3)';
