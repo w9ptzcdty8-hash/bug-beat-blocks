@@ -11,6 +11,7 @@ function stopHoldFastDrop() {
 }
 
 canvas.addEventListener('pointerdown', e => {
+    e.preventDefault();
     if (gameState !== 'PLAYING' || isAnimating) return;
     tX = e.clientX;
     tY = e.clientY;
@@ -27,6 +28,7 @@ canvas.addEventListener('pointerdown', e => {
 });
 
 canvas.addEventListener('pointermove', e => {
+    e.preventDefault();
     if (!isDragging || gameState !== 'PLAYING' || isAnimating) return;
 
     let dx = e.clientX - tX;
@@ -50,6 +52,7 @@ canvas.addEventListener('pointermove', e => {
 });
 
 canvas.addEventListener('pointerup', e => {
+    e.preventDefault();
     stopHoldFastDrop();
     if (!isDragging || gameState !== 'PLAYING' || isAnimating) return;
     isDragging = false;
@@ -66,6 +69,14 @@ canvas.addEventListener('pointerup', e => {
 canvas.addEventListener('pointercancel', () => {
     isDragging = false;
     stopHoldFastDrop();
+});
+
+canvas.addEventListener('dblclick', e => {
+    e.preventDefault();
+});
+
+canvas.addEventListener('contextmenu', e => {
+    e.preventDefault();
 });
 
 window.addEventListener('resize', resizeCanvas);
