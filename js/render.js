@@ -44,7 +44,9 @@ function drawGame() {
                     }
                 }
 
-                if (board[r][c] >= 8 && board[r][c] <= 13) {
+                if (board[r][c] === EGG_BUG || board[r][c] === CRACKED_EGG_BUG) {
+                    drawEggBug(px, py, r, c, board[r][c], scale);
+                } else if (board[r][c] >= 8 && board[r][c] <= 13) {
                     drawBug(px, py, scale, board[r][c]);
                 } else if (board[r][c] < 8) {
                     let t = (r > 0 && groupBoard[r - 1][c] === gId);
@@ -338,6 +340,49 @@ function drawBug(px, py, scale = 1.0, bugType = 8) {
     ctx.fillRect(5, -0.5, 2, 2);
 
     ctx.restore();
+}
+
+function drawEggBug(px, py, row, col, bugType, scale = 1) {
+    const s = BLOCK_SIZE;
+    const action = eggTransitionActions.find(item => item.r === row && item.c === col);
+    const progress = action && animPhase === 'EGG_TRANSITION'
+        ? Math.min(1, animTimer / EGG_TRANSITION_DURATION)
+        : 0;
+    const pulse = bugType === CRACKED_EGG_BUG
+        ? 1 + Math.sin(performance.now() / 120) * 0.035
+        : 1;
+    const shakeStrength = action
+        ? (action.kind === 'hatch' ? 2.2 : 3.2) * Math.sin(progress * Math.PI) * Math.sin(progress * Math.PI * 12)
+        : 0;
+
+    if (action?.kind === 'hatch' && progress > 0.58) {
+        const hatchProgress = (progress - 0.58) / 0.42;
+        const targetScale = 0.35 + hatchProgress * 0.65;
+        ctx.save();
+        ctx.globalAlpha = hatchProgress;
+        if (action.toType >= 14 && action.toType <= 19) {
+            drawBatBug(px + shakeStrength, py, targetScale, 1, action.toType);
+        } else {
+            drawBug(px + shakeStrength, py, targetScale, action.toType);
+        }
+        ctx.restore();
+    } else {
+        ctx.save();
+        ctx.translate(px + s / 2 + shakeStrength, py + s / 2);
+        ctx.scale(pulse * scale, pulse * scale);
+        const imageType = action?.kind === 'crack' && progress > 0.55 ? CRACKED_EGG_BUG : bugType;
+        const fade = action?.kind === 'hatch' ? Math.max(0.15, 1 - progress * 0.9) : 1;
+        ctx.globalAlpha = fade;
+        if (eggBugImageReady[imageType]) {
+            ctx.drawImage(eggBugImages[imageType], -s / 2, -s / 2, s, s);
+        } else {
+            ctx.fillStyle = imageType === CRACKED_EGG_BUG ? '#ff9de2' : '#fbf5eb';
+            ctx.beginPath();
+            ctx.ellipse(0, 1, s * 0.36, s * 0.45, 0, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.restore();
+    }
 }
 
 function drawBatBug(px, py, scale = 1.0, dir = 1, bugType = 14) {

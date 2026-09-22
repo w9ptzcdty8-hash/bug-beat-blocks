@@ -2,10 +2,19 @@ function setupStage(level) {
     board = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
     groupBoard = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
     batBugs = [];
+    eggTransitionActions = [];
+    eggTurnCheckPending = false;
+    eggBatSequence = 0;
     nextGroupId = 1;
 
     const bugCount = Math.min(level, 7);
     remainingEnemies = bugCount;
+    const eggCount = level >= 10 ? Math.min(bugCount, Math.floor(Math.random() * 3) + 1) : 0;
+    const eggIndices = new Set(
+        Array.from({ length: bugCount }, (_, index) => index)
+            .sort(() => Math.random() - 0.5)
+            .slice(0, eggCount)
+    );
 
     for (let i = 0; i < bugCount; i++) {
         let x = (i * 3 + 2) % COLS;
@@ -14,6 +23,12 @@ function setupStage(level) {
         let bugType = 8;
         let isBat = false;
         let batSubtype = 14;
+
+        if (eggIndices.has(i)) {
+            board[y][x] = EGG_BUG;
+            groupBoard[y][x] = -1;
+            continue;
+        }
 
         if (level >= 7 && Math.random() < 0.35) {
             let batsOnRow = batBugs.filter(b => b.row === y).length;
@@ -82,7 +97,7 @@ function setupStage(level) {
     holdTimer = null;
     fastBtn.classList.remove('active');
 
-    addLog(`Setup Stage ${level}: ${bugCount} bugs (Bat Bugs: ${batBugs.length})`);
+    addLog(`Setup Stage ${level}: ${bugCount} bugs (Egg Bugs: ${eggCount}, Bat Bugs: ${batBugs.length})`);
 }
 
 function isObstacleAt(r, c, currentBatId) {
@@ -432,8 +447,10 @@ function processMatches(shouldAdvance = true) {
                 for (let n of getNeighbors(r, c)) {
                     let bugType = board[n.r][n.c];
 
-                    if (bugType >= 8 && bugType <= 19) {
-                        if (rainbowClearBlocks[r][c]) {
+                    if ((bugType >= 8 && bugType <= 19) || bugType === EGG_BUG || bugType === CRACKED_EGG_BUG) {
+                        if (bugType === EGG_BUG || bugType === CRACKED_EGG_BUG) {
+                            toClearBugs[n.r][n.c] = true;
+                        } else if (rainbowClearBlocks[r][c]) {
                             toClearBugs[n.r][n.c] = true;
                         } else if (bugType === 8 || bugType === 13 || bugType === 14 || bugType === 19) {
                             toClearBugs[n.r][n.c] = true;
@@ -453,6 +470,8 @@ function processMatches(shouldAdvance = true) {
     }
 
     if (hasClear) {
+        // 1ターン内で連鎖しても、タマゴの進行判定は最後に1回だけ行う。
+        eggTurnCheckPending = true;
         chainCount++;
         pendingClearBlocks = toClearBlocks;
         pendingClearBugs = toClearBugs;
@@ -554,6 +573,8 @@ function updateAnimation(dt) {
         }
     } else if (animPhase === 'FALLING') {
         updateFallingGroups(dt);
+    } else if (animPhase === 'EGG_TRANSITION') {
+        updateEggTransition(dt);
     }
 }
 
@@ -779,6 +800,21 @@ function updateFallingGroups(dt) {
 }
 
 function advancePiece() {
+    if (remainingEnemies <= 0) {
+        eggTurnCheckPending = false;
+        finishAdvancePiece();
+        return;
+    }
+
+    if (eggTurnCheckPending) {
+        eggTurnCheckPending = false;
+        if (startEggTurnResolution()) return;
+    }
+
+    finishAdvancePiece();
+}
+
+function finishAdvancePiece() {
     isAnimating = false;
     animPhase = 'NONE';
 
@@ -799,6 +835,78 @@ function advancePiece() {
         addLog('Game Over: Spawn Block Collided');
         changeScreen('GAMEOVER');
     }
+}
+
+function getEggHatchCandidates() {
+    const candidates = [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18];
+    if (selectedLevel >= 15) candidates.push(19);
+    return candidates;
+}
+
+function startEggTurnResolution() {
+    const actions = [];
+    const hatchCandidates = getEggHatchCandidates();
+
+    for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+            const type = board[r][c];
+            if (type === EGG_BUG && Math.random() < 0.5) {
+                actions.push({ r, c, kind: 'crack', fromType: EGG_BUG, toType: CRACKED_EGG_BUG });
+            } else if (type === CRACKED_EGG_BUG && Math.random() < 0.5) {
+                const toType = hatchCandidates[Math.floor(Math.random() * hatchCandidates.length)];
+                actions.push({ r, c, kind: 'hatch', fromType: CRACKED_EGG_BUG, toType });
+            }
+        }
+    }
+
+    if (actions.length === 0) return false;
+
+    eggTransitionActions = actions;
+    isAnimating = true;
+    animPhase = 'EGG_TRANSITION';
+    animTimer = 0;
+    addLog(`Egg turn resolution: ${actions.filter(action => action.kind === 'crack').length} cracked, ${actions.filter(action => action.kind === 'hatch').length} hatched`);
+    return true;
+}
+
+function registerHatchedBat(row, col, bugType) {
+    batBugs.push({
+        id: `egg_bat_${eggBatSequence++}`,
+        row,
+        posX: col,
+        dir: Math.random() < 0.5 ? 1 : -1,
+        speed: 1.8,
+        minX: Math.max(0, col - 2),
+        maxX: Math.min(COLS - 1, col + 2),
+        type: bugType
+    });
+}
+
+function updateEggTransition() {
+    if (animTimer < EGG_TRANSITION_DURATION) return;
+
+    eggTransitionActions.forEach(action => {
+        if (board[action.r][action.c] !== action.fromType) return;
+
+        board[action.r][action.c] = action.toType;
+        groupBoard[action.r][action.c] = -1;
+
+        const centerX = action.c * BLOCK_SIZE + BLOCK_SIZE / 2;
+        const centerY = action.r * BLOCK_SIZE + BLOCK_SIZE / 2;
+        spawnClearSparkles(centerX, centerY);
+
+        if (action.kind === 'hatch') {
+            if (action.toType >= 14 && action.toType <= 19) {
+                registerHatchedBat(action.r, action.c, action.toType);
+            }
+            spawnPopText(centerX, centerY, 'HATCH!', '#ffd93d');
+        } else {
+            spawnPopText(centerX, centerY, 'CRACK!', '#ff9de2');
+        }
+    });
+
+    eggTransitionActions = [];
+    finishAdvancePiece();
 }
 
 function spawnClearSparkles(cx, cy) {
