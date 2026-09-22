@@ -210,7 +210,8 @@
 
         .basic-rule-image {
             display: block;
-            width: 100%;
+            width: 25%;
+            max-width: 95px;
             height: auto;
             margin: 8px auto 12px;
             border: 2px solid var(--ink);
