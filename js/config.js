@@ -15,6 +15,9 @@ const BLOCK_COLORS = [1, 2, 3, 4];
 const RAINBOW_BLOCK = 5;
 const RAINBOW_PIECE_CHANCE = 0.05;
 const RAINBOW_CLEAR_DURATION = 850;
+const EGG_BUG = 20;
+const CRACKED_EGG_BUG = 21;
+const EGG_TRANSITION_DURATION = 900;
 
 function createRainbowGradient(targetCtx, x, y, width, height, offset = 0) {
     const gradient = targetCtx.createLinearGradient(x, y, x + width, y + height);
@@ -111,6 +114,28 @@ Object.entries(BAT_WING_ASSET_SOURCES).forEach(([frame, src]) => {
     batWingImages[frame] = image;
 });
 
+const EGG_BUG_ASSET_SOURCES = {
+    [EGG_BUG]: 'assets/images/enemy-egg.png',
+    [CRACKED_EGG_BUG]: 'assets/images/enemy-egg-cracked.png'
+};
+
+const eggBugImages = {};
+const eggBugImageReady = {};
+
+Object.entries(EGG_BUG_ASSET_SOURCES).forEach(([bugType, src]) => {
+    const image = new Image();
+    eggBugImageReady[bugType] = false;
+    image.onload = () => {
+        eggBugImageReady[bugType] = true;
+    };
+    image.onerror = () => {
+        eggBugImageReady[bugType] = false;
+    };
+    image.decoding = 'async';
+    image.src = src;
+    eggBugImages[bugType] = image;
+});
+
 const SHAPES = [
     [],
     [[1,1,1,1]],
@@ -163,6 +188,9 @@ let fallingGroups = [];
 let advanceAfterResolution = true;
 
 let batBugs = [];
+let eggTransitionActions = [];
+let eggTurnCheckPending = false;
+let eggBatSequence = 0;
 
 let chainCount = 0;
 
