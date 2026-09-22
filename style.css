@@ -208,6 +208,33 @@
             background: var(--mint);
         }
 
+        .basic-rule-image {
+            display: block;
+            width: 100%;
+            height: auto;
+            margin: 8px auto 12px;
+            border: 2px solid var(--ink);
+            border-radius: 12px;
+            object-fit: contain;
+            background: #1a0f3d;
+            pointer-events: none;
+            -webkit-touch-callout: none;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .basic-rule-list {
+            padding-left: 1.4em;
+            font-family: 'Nunito', 'Noto Sans JP', sans-serif;
+            font-size: 13px;
+            font-weight: 700;
+            line-height: 1.65;
+        }
+
+        .basic-rule-list li + li {
+            margin-top: 6px;
+        }
+
         .bug-guide-card {
             display: flex;
             align-items: center;
