@@ -132,6 +132,107 @@
             box-shadow: none;
         }
 
+        .title-howto-btn {
+            width: 68%;
+            max-width: 220px;
+            padding: 10px 18px;
+            font-family: 'Noto Sans JP', sans-serif;
+            font-size: 15px;
+        }
+
+        #how-to-screen {
+            justify-content: flex-start;
+            background: rgba(36,20,84,0.97);
+            padding-top: 18px;
+        }
+
+        .how-to-title {
+            flex-shrink: 0;
+            margin-bottom: 10px !important;
+        }
+
+        .how-to-content {
+            width: 100%;
+            max-width: 390px;
+            min-height: 0;
+            flex: 1;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            -webkit-overflow-scrolling: touch;
+            touch-action: pan-y;
+            padding: 2px 4px 12px;
+        }
+
+        .how-to-section,
+        .bug-guide-card {
+            width: 100%;
+            margin-bottom: 10px;
+            padding: 12px;
+            border: 3px solid var(--ink);
+            border-radius: 16px;
+            background: var(--paper);
+            color: var(--ink);
+            box-shadow: 0 4px 0 var(--ink);
+            text-align: left;
+        }
+
+        .how-to-section h2,
+        .bug-guide-card h2 {
+            margin-bottom: 5px;
+            font-family: 'Mochiy Pop One', 'Noto Sans JP', sans-serif;
+            font-size: 15px;
+            line-height: 1.4;
+        }
+
+        .how-to-section p,
+        .bug-guide-card p {
+            font-family: 'Nunito', 'Noto Sans JP', sans-serif;
+            font-size: 13px;
+            font-weight: 700;
+            line-height: 1.65;
+        }
+
+        .how-to-section p + p {
+            margin-top: 6px;
+        }
+
+        .basic-rule {
+            background: var(--mint);
+        }
+
+        .bug-guide-card {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .bug-guide-card img {
+            width: 62px;
+            height: 62px;
+            flex-shrink: 0;
+            object-fit: contain;
+            pointer-events: none;
+            -webkit-touch-callout: none;
+        }
+
+        .special-bug-note {
+            margin: 16px 4px 4px;
+            color: #fff;
+            font-family: 'Mochiy Pop One', 'Noto Sans JP', sans-serif;
+            font-size: 14px;
+            line-height: 1.7;
+            text-align: center;
+            text-shadow: 0 2px 0 rgba(0,0,0,0.25);
+        }
+
+        .how-to-back-btn {
+            flex-shrink: 0;
+            margin-top: 10px;
+            padding: 10px 18px;
+            font-family: 'Noto Sans JP', sans-serif;
+            font-size: 14px;
+        }
+
         .mrs-games-link {
             min-height: 44px;
             margin-top: 8px;
