@@ -28,6 +28,7 @@ function resizeCanvas() {
 function changeScreen(state) {
     gameState = state;
     document.getElementById('title-screen').classList.add('hidden');
+    document.getElementById('how-to-screen').classList.add('hidden');
     document.getElementById('level-screen').classList.add('hidden');
     document.getElementById('overlay-screen').classList.add('hidden');
     document.getElementById('pause-screen').classList.add('hidden');
@@ -37,6 +38,9 @@ function changeScreen(state) {
 
     if (state === 'TITLE') {
         document.getElementById('title-screen').classList.remove('hidden');
+    } else if (state === 'HOW_TO') {
+        document.getElementById('how-to-screen').classList.remove('hidden');
+        document.querySelector('.how-to-content').scrollTop = 0;
     } else if (state === 'LEVEL_SELECT') {
         document.getElementById('level-screen').classList.remove('hidden');
         buildLevelGrid();
@@ -89,6 +93,8 @@ document.getElementById('start-btn').onclick = () => {
     addLog('Game Started: Level Select');
     changeScreen('LEVEL_SELECT');
 };
+document.getElementById('how-to-btn').onclick = () => changeScreen('HOW_TO');
+document.getElementById('how-to-back-btn').onclick = () => changeScreen('TITLE');
 document.getElementById('back-title-btn').onclick = () => changeScreen('TITLE');
 document.getElementById('overlay-action-btn').onclick = () => {
     if (gameState === 'GAMEOVER') {

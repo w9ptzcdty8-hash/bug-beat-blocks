@@ -17,7 +17,51 @@
         <img class="badge" src="assets/images/title-illustration.png" alt="" draggable="false">
         <h1 class="title">BUG BEAT<br>BLOCKS</h1>
         <button class="btn" id="start-btn">LEVEL SELECT</button>
+        <button class="btn secondary title-howto-btn" id="how-to-btn">あそび方</button>
         <a class="mrs-games-link" href="https://mrs-games.pages.dev/">MRS GAMES</a>
+    </div>
+
+    <!-- あそび方画面 -->
+    <div id="how-to-screen" class="screen hidden">
+        <h1 class="section-title how-to-title">あそび方</h1>
+        <div class="how-to-content">
+            <section class="how-to-section basic-rule">
+                <h2>基本ルール</h2>
+                <img class="basic-rule-image" src="assets/images/how-to-basic-rule.png" alt="たて・よこにつながった4つのブロック" draggable="false">
+                <ul class="basic-rule-list">
+                    <li>同じ色のブロックを、たて・よこに4つ以上つなげると消せるよ。</li>
+                    <li>バグ（敵）が触れているブロックを消すと、バグを攻撃できるよ。</li>
+                    <li>バグによっては、決まった色のブロックでしか倒せないよ。</li>
+                </ul>
+            </section>
+
+            <section class="bug-guide-card">
+                <img src="assets/images/enemy-normal-white.png" alt="白バグ" draggable="false">
+                <div>
+                    <h2>白バグ</h2>
+                    <p>どの色のブロックを消しても倒せるよ。</p>
+                </div>
+            </section>
+
+            <section class="bug-guide-card">
+                <img src="assets/images/enemy-normal-yellow.png" alt="色バグ" draggable="false">
+                <div>
+                    <h2>色バグ</h2>
+                    <p>バグと同じ色のブロックを消すと倒せるよ。</p>
+                </div>
+            </section>
+
+            <section class="bug-guide-card">
+                <img src="assets/images/enemy-normal-metal.png" alt="メタルバグ" draggable="false">
+                <div>
+                    <h2>メタルバグ</h2>
+                    <p>1回攻撃すると普通のバグに変化するよ。変化したバグをもう一度攻撃して倒そう。</p>
+                </div>
+            </section>
+
+            <p class="special-bug-note">この他にも特殊なバグ・ブロックがあるかも・・・</p>
+        </div>
+        <button class="btn secondary how-to-back-btn" id="how-to-back-btn">タイトルに戻る</button>
     </div>
 
     <!-- レベル選択画面 -->
