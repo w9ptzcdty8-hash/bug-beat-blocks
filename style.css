@@ -144,6 +144,7 @@
             justify-content: flex-start;
             background: rgba(36,20,84,0.97);
             padding-top: 18px;
+            overflow: hidden;
         }
 
         .how-to-title {
@@ -154,13 +155,20 @@
         .how-to-content {
             width: 100%;
             max-width: 390px;
+            height: 0;
             min-height: 0;
-            flex: 1;
-            overflow-y: auto;
-            overscroll-behavior: contain;
+            flex: 1 1 0;
+            overflow-x: hidden;
+            overflow-y: scroll;
+            overscroll-behavior-y: contain;
             -webkit-overflow-scrolling: touch;
             touch-action: pan-y;
-            padding: 2px 4px 12px;
+            padding: 2px 4px 24px;
+        }
+
+        /* 全体の touch-action:none を、この説明エリア内だけ縦スクロール可能に戻す */
+        .how-to-content * {
+            touch-action: pan-y;
         }
 
         .how-to-section,
