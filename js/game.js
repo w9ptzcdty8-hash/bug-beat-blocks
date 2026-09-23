@@ -7,54 +7,16 @@ function setupStage(level) {
     eggBatSequence = 0;
     nextGroupId = 1;
 
-    const bugCount = Math.min(level, 7);
+    const levelConfig = getLevelConfig(level);
+    const enemyTypes = buildStageEnemyTypes(levelConfig);
+    const placements = createEnemyPlacements(enemyTypes);
+    const bugCount = levelConfig.enemyCount;
     remainingEnemies = bugCount;
-    const eggCount = level >= 10 ? Math.min(bugCount, Math.floor(Math.random() * 3) + 1) : 0;
-    const eggIndices = new Set(
-        Array.from({ length: bugCount }, (_, index) => index)
-            .sort(() => Math.random() - 0.5)
-            .slice(0, eggCount)
-    );
 
-    for (let i = 0; i < bugCount; i++) {
-        let x = (i * 3 + 2) % COLS;
-        let y = ROWS - 1 - Math.floor(i / 2) * 2;
-
-        let bugType = 8;
-        let isBat = false;
-        let batSubtype = 14;
-
-        if (eggIndices.has(i)) {
-            board[y][x] = EGG_BUG;
-            groupBoard[y][x] = -1;
-            continue;
-        }
-
-        if (level >= 7 && Math.random() < 0.35) {
-            let batsOnRow = batBugs.filter(b => b.row === y).length;
-            if (batsOnRow === 0) {
-                isBat = true;
-                if (level >= 15 && Math.random() < 0.3) {
-                    batSubtype = 19;
-                } else if (level >= 10 && Math.random() < 0.5) {
-                    batSubtype = Math.floor(Math.random() * 4) + 15;
-                }
-            }
-        }
-
-        if (isBat) {
-            bugType = batSubtype;
-        } else {
-            if (level >= 5 && Math.random() < 0.35) {
-                bugType = 13;
-            } else if (level >= 2 && Math.random() < 0.6) {
-                bugType = Math.floor(Math.random() * 4) + 9;
-            }
-        }
-
-        if (isBat) {
+    placements.forEach(({ x, y, bugType }, index) => {
+        if (isBatBugType(bugType)) {
             batBugs.push({
-                id: `bat_${i}`,
+                id: `bat_${index}`,
                 row: y,
                 posX: x,
                 dir: Math.random() < 0.5 ? 1 : -1,
@@ -63,13 +25,10 @@ function setupStage(level) {
                 maxX: Math.min(COLS - 1, x + 2),
                 type: bugType
             });
-            board[y][x] = bugType;
-            groupBoard[y][x] = -1;
-        } else {
-            board[y][x] = bugType;
-            groupBoard[y][x] = -1;
         }
-    }
+        board[y][x] = bugType;
+        groupBoard[y][x] = -1;
+    });
 
     normalDropInterval = 1000;
     currentPiece = new Piece(Math.floor(Math.random() * 7) + 1);
@@ -97,7 +56,69 @@ function setupStage(level) {
     holdTimer = null;
     fastBtn.classList.remove('active');
 
+    const eggCount = enemyTypes.filter(type => type === EGG_BUG).length;
     addLog(`Setup Stage ${level}: ${bugCount} bugs (Egg Bugs: ${eggCount}, Bat Bugs: ${batBugs.length})`);
+}
+
+function shuffleArray(values) {
+    const shuffled = [...values];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+}
+
+function resolveEnemyKind(kind) {
+    const fixedTypes = {
+        white: 8,
+        metal: 13,
+        batWhite: 14,
+        batMetal: 19,
+        egg: EGG_BUG
+    };
+    if (kind === 'color') return Math.floor(Math.random() * 4) + 9;
+    if (kind === 'batColor') return Math.floor(Math.random() * 4) + 15;
+    return fixedTypes[kind] || 8;
+}
+
+function buildStageEnemyTypes(levelConfig) {
+    const enemyKinds = [...levelConfig.guaranteed];
+    while (enemyKinds.length < levelConfig.enemyCount) {
+        const kind = levelConfig.randomPool[Math.floor(Math.random() * levelConfig.randomPool.length)];
+        enemyKinds.push(kind);
+    }
+    return enemyKinds.map(resolveEnemyKind);
+}
+
+function isBatBugType(bugType) {
+    return bugType >= 14 && bugType <= 19;
+}
+
+function createEnemyPlacements(enemyTypes) {
+    const slots = enemyTypes.map((_, index) => ({
+        x: (index * 3 + 2) % COLS,
+        y: ROWS - 1 - Math.floor(index / 2) * 2
+    }));
+    const batTypes = shuffleArray(enemyTypes.filter(isBatBugType));
+    const groundedTypes = shuffleArray(enemyTypes.filter(type => !isBatBugType(type)));
+    const placements = [];
+    const availableSlots = [...slots];
+    const availableRows = shuffleArray([...new Set(slots.map(slot => slot.y))]);
+
+    batTypes.forEach(bugType => {
+        const row = availableRows.shift();
+        const rowSlots = availableSlots.filter(slot => slot.y === row);
+        const slot = rowSlots[Math.floor(Math.random() * rowSlots.length)] || availableSlots[0];
+        placements.push({ ...slot, bugType });
+        availableSlots.splice(availableSlots.indexOf(slot), 1);
+    });
+
+    shuffleArray(availableSlots).forEach((slot, index) => {
+        placements.push({ ...slot, bugType: groundedTypes[index] });
+    });
+
+    return placements;
 }
 
 function isObstacleAt(r, c, currentBatId) {

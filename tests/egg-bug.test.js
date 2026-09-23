@@ -55,8 +55,14 @@ vm.runInContext(`
     assert.equal(board.flat().filter(type => type === EGG_BUG).length, 0);
 
     setupStage(10);
-    assert.equal(board.flat().filter(type => type === EGG_BUG).length, 3);
+    assert.equal(board.flat().filter(type => type === EGG_BUG).length, 0);
+
+    setupStage(11);
+    assert.equal(board.flat().filter(type => type === EGG_BUG).length, 1);
     assert.equal(remainingEnemies, 7);
+
+    setupStage(15);
+    assert.equal(board.flat().filter(type => type === EGG_BUG).length, 3);
 
     board = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
     groupBoard = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
@@ -87,6 +93,7 @@ vm.runInContext(`
 
     board = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
     groupBoard = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
+    batBugs = [];
     board[12][3] = CRACKED_EGG_BUG;
     eggTransitionActions = [{
         r: 12,

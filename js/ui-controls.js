@@ -68,15 +68,15 @@ function changeScreen(state) {
 }
 
 /**
- * レベル1〜20までを全てオープン
+ * 設定済みの全レベルをオープン
  */
 function buildLevelGrid() {
     const grid = document.getElementById('level-grid');
     grid.innerHTML = '';
-    for (let i = 1; i <= 20; i++) {
+    for (let i = 1; i <= MAX_LEVEL; i++) {
         const btn = document.createElement('div');
         btn.className = `lvl-btn`;
-        const bugCount = Math.min(i, 7);
+        const bugCount = getLevelConfig(i).enemyCount;
         btn.innerHTML = `${i}<span class="bug-count">●×${bugCount}</span>`;
         btn.onclick = () => {
             selectedLevel = i;
@@ -102,7 +102,7 @@ document.getElementById('overlay-action-btn').onclick = () => {
         setupStage(selectedLevel);
         changeScreen('PLAYING');
     } else if (gameState === 'STAGECLEAR') {
-        selectedLevel = Math.min(selectedLevel + 1, 20); // レベル20まで上限解放
+        selectedLevel = Math.min(selectedLevel + 1, MAX_LEVEL);
         setupStage(selectedLevel);
         changeScreen('PLAYING');
     }

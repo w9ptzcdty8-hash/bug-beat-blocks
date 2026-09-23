@@ -136,6 +136,37 @@ Object.entries(EGG_BUG_ASSET_SOURCES).forEach(([bugType, src]) => {
     eggBugImages[bugType] = image;
 });
 
+// 各レベルは「確定枠 + 残りのランダム枠」で構成する。
+// 新しいバグを追加するときは、既存レベルの抽選条件を変えずに設定を追加できる。
+const LEVEL_CONFIG = {
+    1:  { enemyCount: 1,  guaranteed: ['white'], randomPool: ['white'] },
+    2:  { enemyCount: 2,  guaranteed: ['white', 'color'], randomPool: ['white', 'color'] },
+    3:  { enemyCount: 3,  guaranteed: ['white', 'color'], randomPool: ['white', 'color'] },
+    4:  { enemyCount: 4,  guaranteed: ['color', 'color'], randomPool: ['white', 'color'] },
+    5:  { enemyCount: 5,  guaranteed: ['color', 'color', 'color'], randomPool: ['white', 'color'] },
+    6:  { enemyCount: 5,  guaranteed: ['metal', 'white', 'color'], randomPool: ['white', 'color'] },
+    7:  { enemyCount: 6,  guaranteed: ['metal', 'batWhite', 'color'], randomPool: ['white', 'color', 'metal'] },
+    8:  { enemyCount: 6,  guaranteed: ['metal', 'metal', 'batWhite', 'color'], randomPool: ['white', 'color', 'metal'] },
+    9:  { enemyCount: 7,  guaranteed: ['metal', 'metal', 'batWhite', 'batColor'], randomPool: ['white', 'color', 'metal'] },
+    10: { enemyCount: 7,  guaranteed: ['metal', 'metal', 'batWhite', 'batColor'], randomPool: ['white', 'color', 'metal'] },
+    11: { enemyCount: 7,  guaranteed: ['egg', 'white', 'color'], randomPool: ['white', 'color', 'metal'] },
+    12: { enemyCount: 7,  guaranteed: ['egg', 'metal', 'batWhite'], randomPool: ['white', 'color', 'metal'] },
+    13: { enemyCount: 7,  guaranteed: ['egg', 'egg', 'metal', 'batWhite'], randomPool: ['white', 'color', 'metal'] },
+    14: { enemyCount: 7,  guaranteed: ['egg', 'egg', 'metal', 'batColor'], randomPool: ['white', 'color', 'metal', 'batWhite'] },
+    15: { enemyCount: 7,  guaranteed: ['egg', 'egg', 'egg', 'metal', 'batColor', 'batMetal'], randomPool: ['white', 'color'] },
+    16: { enemyCount: 8,  guaranteed: ['white', 'color', 'metal', 'egg', 'batWhite', 'batColor', 'batMetal'], randomPool: ['white', 'color', 'metal'] },
+    17: { enemyCount: 9,  guaranteed: ['white', 'color', 'metal', 'metal', 'egg', 'batWhite', 'batColor', 'batMetal'], randomPool: ['white', 'color', 'metal'] },
+    18: { enemyCount: 10, guaranteed: ['color', 'metal', 'metal', 'egg', 'egg', 'batWhite', 'batColor', 'batMetal'], randomPool: ['white', 'color', 'metal', 'batColor'] },
+    19: { enemyCount: 11, guaranteed: ['white', 'color', 'metal', 'metal', 'egg', 'egg', 'batWhite', 'batColor', 'batColor', 'batMetal'], randomPool: ['color', 'metal'] },
+    20: { enemyCount: 12, guaranteed: ['white', 'color', 'metal', 'metal', 'egg', 'egg', 'egg', 'batWhite', 'batColor', 'batMetal'], randomPool: ['color', 'metal', 'batColor'] }
+};
+
+const MAX_LEVEL = Math.max(...Object.keys(LEVEL_CONFIG).map(Number));
+
+function getLevelConfig(level) {
+    return LEVEL_CONFIG[level] || LEVEL_CONFIG[1];
+}
+
 const SHAPES = [
     [],
     [[1,1,1,1]],
