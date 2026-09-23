@@ -47,8 +47,8 @@ vm.runInContext(`
 load('js/game.js');
 
 vm.runInContext(`
-    const expectedCounts = [1, 2, 3, 4, 5, 5, 6, 6, 7, 7, 7, 7, 7, 7, 7, 8, 9, 10, 11, 12];
-    assert.equal(MAX_LEVEL, 20);
+    const expectedCounts = [1, 2, 3, 4, 5, 5, 6, 6, 7, 7, 7, 7, 7, 7, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20];
+    assert.equal(MAX_LEVEL, 28);
 
     for (let level = 1; level <= MAX_LEVEL; level++) {
         const config = getLevelConfig(level);
@@ -70,7 +70,13 @@ vm.runInContext(`
             assert.equal(occupied.length, config.enemyCount, 'enemy count at level ' + level);
             assert.equal(remainingEnemies, config.enemyCount);
             assert.equal(new Set(occupied.map(cell => cell.r + ',' + cell.c)).size, occupied.length);
+            assert.equal(occupied.every(cell => cell.r >= 0 && cell.r < ROWS), true);
             assert.equal(new Set(batBugs.map(bat => bat.row)).size, batBugs.length, 'bat rows at level ' + level);
+
+            if (level >= 21) {
+                assert.ok(occupied.filter(cell => cell.type === EGG_BUG).length <= config.limits.eggs);
+                assert.ok(batBugs.length <= config.limits.bats);
+            }
         }
     }
 
@@ -88,6 +94,10 @@ vm.runInContext(`
     assert.deepEqual(
         [16, 17, 18, 19, 20].map(level => getLevelConfig(level).enemyCount),
         [8, 9, 10, 11, 12]
+    );
+    assert.deepEqual(
+        [21, 22, 23, 24, 25, 26, 27, 28].map(level => getLevelConfig(level).enemyCount),
+        [13, 14, 15, 16, 17, 18, 19, 20]
     );
 
     const finalKinds = new Set(getLevelConfig(20).guaranteed);

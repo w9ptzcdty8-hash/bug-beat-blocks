@@ -298,6 +298,21 @@
             width: 100%;
             max-width: 320px;
         }
+
+        #level-screen {
+            justify-content: flex-start;
+            overflow-x: hidden;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior-y: contain;
+            touch-action: pan-y;
+        }
+
+        #level-screen .section-title,
+        #level-screen .level-grid,
+        #level-screen .btn {
+            flex-shrink: 0;
+        }
         .lvl-btn {
             position: relative;
             aspect-ratio: 1;

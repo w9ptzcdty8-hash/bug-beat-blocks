@@ -158,7 +158,15 @@ const LEVEL_CONFIG = {
     17: { enemyCount: 9,  guaranteed: ['white', 'color', 'metal', 'metal', 'egg', 'batWhite', 'batColor', 'batMetal'], randomPool: ['white', 'color', 'metal'] },
     18: { enemyCount: 10, guaranteed: ['color', 'metal', 'metal', 'egg', 'egg', 'batWhite', 'batColor', 'batMetal'], randomPool: ['white', 'color', 'metal', 'batColor'] },
     19: { enemyCount: 11, guaranteed: ['white', 'color', 'metal', 'metal', 'egg', 'egg', 'batWhite', 'batColor', 'batColor', 'batMetal'], randomPool: ['color', 'metal'] },
-    20: { enemyCount: 12, guaranteed: ['white', 'color', 'metal', 'metal', 'egg', 'egg', 'egg', 'batWhite', 'batColor', 'batMetal'], randomPool: ['color', 'metal', 'batColor'] }
+    20: { enemyCount: 12, guaranteed: ['white', 'color', 'metal', 'metal', 'egg', 'egg', 'egg', 'batWhite', 'batColor', 'batMetal'], randomPool: ['color', 'metal', 'batColor'] },
+    21: { enemyCount: 13, guaranteed: ['white', 'color', 'metal', 'metal', 'egg', 'egg', 'egg', 'batWhite', 'batColor', 'batMetal'], randomPool: ['white', 'color', 'metal', 'egg', 'batWhite', 'batColor', 'batMetal'], limits: { eggs: 5, bats: 6 } },
+    22: { enemyCount: 14, guaranteed: ['white', 'color', 'metal', 'metal', 'egg', 'egg', 'egg', 'batWhite', 'batColor', 'batMetal'], randomPool: ['white', 'color', 'metal', 'egg', 'batWhite', 'batColor', 'batMetal'], limits: { eggs: 5, bats: 6 } },
+    23: { enemyCount: 15, guaranteed: ['white', 'color', 'metal', 'metal', 'egg', 'egg', 'egg', 'batWhite', 'batColor', 'batMetal'], randomPool: ['white', 'color', 'metal', 'egg', 'batWhite', 'batColor', 'batMetal'], limits: { eggs: 5, bats: 6 } },
+    24: { enemyCount: 16, guaranteed: ['white', 'color', 'metal', 'metal', 'egg', 'egg', 'egg', 'batWhite', 'batColor', 'batMetal'], randomPool: ['white', 'color', 'metal', 'egg', 'batWhite', 'batColor', 'batMetal'], limits: { eggs: 5, bats: 6 } },
+    25: { enemyCount: 17, guaranteed: ['white', 'color', 'metal', 'metal', 'egg', 'egg', 'egg', 'batWhite', 'batColor', 'batMetal'], randomPool: ['white', 'color', 'metal', 'egg', 'batWhite', 'batColor', 'batMetal'], limits: { eggs: 5, bats: 6 } },
+    26: { enemyCount: 18, guaranteed: ['white', 'color', 'metal', 'metal', 'egg', 'egg', 'egg', 'batWhite', 'batColor', 'batMetal'], randomPool: ['white', 'color', 'metal', 'egg', 'batWhite', 'batColor', 'batMetal'], limits: { eggs: 5, bats: 6 } },
+    27: { enemyCount: 19, guaranteed: ['white', 'color', 'metal', 'metal', 'egg', 'egg', 'egg', 'batWhite', 'batColor', 'batMetal'], randomPool: ['white', 'color', 'metal', 'egg', 'batWhite', 'batColor', 'batMetal'], limits: { eggs: 5, bats: 6 } },
+    28: { enemyCount: 20, guaranteed: ['white', 'color', 'metal', 'metal', 'egg', 'egg', 'egg', 'batWhite', 'batColor', 'batMetal'], randomPool: ['white', 'color', 'metal', 'egg', 'batWhite', 'batColor', 'batMetal'], limits: { eggs: 5, bats: 6 } }
 };
 
 const MAX_LEVEL = Math.max(...Object.keys(LEVEL_CONFIG).map(Number));

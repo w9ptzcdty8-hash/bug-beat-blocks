@@ -85,10 +85,23 @@ function resolveEnemyKind(kind) {
 function buildStageEnemyTypes(levelConfig) {
     const enemyKinds = [...levelConfig.guaranteed];
     while (enemyKinds.length < levelConfig.enemyCount) {
-        const kind = levelConfig.randomPool[Math.floor(Math.random() * levelConfig.randomPool.length)];
+        const eggCount = enemyKinds.filter(kind => kind === 'egg').length;
+        const batCount = enemyKinds.filter(isBatEnemyKind).length;
+        const availablePool = levelConfig.randomPool.filter(kind => {
+            if (kind === 'egg' && eggCount >= (levelConfig.limits?.eggs ?? Infinity)) return false;
+            if (isBatEnemyKind(kind) && batCount >= (levelConfig.limits?.bats ?? Infinity)) return false;
+            return true;
+        });
+        const fallbackPool = ['white', 'color', 'metal'];
+        const pool = availablePool.length > 0 ? availablePool : fallbackPool;
+        const kind = pool[Math.floor(Math.random() * pool.length)];
         enemyKinds.push(kind);
     }
     return enemyKinds.map(resolveEnemyKind);
+}
+
+function isBatEnemyKind(kind) {
+    return kind === 'batWhite' || kind === 'batColor' || kind === 'batMetal';
 }
 
 function isBatBugType(bugType) {
@@ -96,9 +109,10 @@ function isBatBugType(bugType) {
 }
 
 function createEnemyPlacements(enemyTypes) {
+    const placementRows = [17, 15, 13, 11, 9, 7, 16, 14, 12, 10];
     const slots = enemyTypes.map((_, index) => ({
         x: (index * 3 + 2) % COLS,
-        y: ROWS - 1 - Math.floor(index / 2) * 2
+        y: placementRows[Math.floor(index / 2)]
     }));
     const batTypes = shuffleArray(enemyTypes.filter(isBatBugType));
     const groundedTypes = shuffleArray(enemyTypes.filter(type => !isBatBugType(type)));
@@ -546,13 +560,8 @@ function updateAnimation(dt) {
                         let bugType = board[r][c];
 
                         if (bugType === 13 || bugType === 19) {
-                            let nextType = (Math.random() < 0.4) ? 8 : Math.floor(Math.random() * 4) + 9;
-                            board[r][c] = nextType;
+                            transformMetalBug(r, c, bugType);
                             score += 250 * chainCount;
-
-                            if (bugType === 19) {
-                                batBugs = batBugs.filter(b => !(b.row === r && Math.round(b.posX) === c));
-                            }
 
                             spawnSquash(c * BLOCK_SIZE + BLOCK_SIZE / 2, r * BLOCK_SIZE + BLOCK_SIZE / 2);
                             spawnPopText(c * BLOCK_SIZE + BLOCK_SIZE / 2, r * BLOCK_SIZE + BLOCK_SIZE / 2, 'TRANSFORM!', '#ffd93d');
@@ -597,6 +606,22 @@ function updateAnimation(dt) {
     } else if (animPhase === 'EGG_TRANSITION') {
         updateEggTransition(dt);
     }
+}
+
+function transformMetalBug(row, col, bugType) {
+    const isMetalBat = bugType === 19;
+    const nextType = Math.random() < 0.4
+        ? (isMetalBat ? 14 : 8)
+        : Math.floor(Math.random() * 4) + (isMetalBat ? 15 : 9);
+
+    board[row][col] = nextType;
+
+    if (isMetalBat) {
+        const bat = batBugs.find(item => item.row === row && Math.round(item.posX) === col);
+        if (bat) bat.type = nextType;
+    }
+
+    return nextType;
 }
 
 function resplitDisconnectedGroups() {
