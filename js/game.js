@@ -9,7 +9,7 @@ function setupStage(level) {
 
     const levelConfig = getLevelConfig(level);
     const enemyTypes = buildStageEnemyTypes(levelConfig);
-    const placements = createEnemyPlacements(enemyTypes);
+    const placements = createEnemyPlacements(enemyTypes, level);
     const bugCount = levelConfig.enemyCount;
     remainingEnemies = bugCount;
 
@@ -108,7 +108,17 @@ function isBatBugType(bugType) {
     return bugType >= 14 && bugType <= 19;
 }
 
-function createEnemyPlacements(enemyTypes) {
+function createEnemyPlacements(enemyTypes, level) {
+    if (level >= 29) {
+        const randomSlots = [];
+        for (let y = 6; y < ROWS; y++) {
+            for (let x = 0; x < COLS; x++) randomSlots.push({ x, y });
+        }
+        const shuffledSlots = shuffleArray(randomSlots).slice(0, enemyTypes.length);
+        const shuffledTypes = shuffleArray(enemyTypes);
+        return shuffledSlots.map((slot, index) => ({ ...slot, bugType: shuffledTypes[index] }));
+    }
+
     const placementRows = [17, 15, 13, 11, 9, 7, 16, 14, 12, 10];
     const slots = enemyTypes.map((_, index) => ({
         x: (index * 3 + 2) % COLS,

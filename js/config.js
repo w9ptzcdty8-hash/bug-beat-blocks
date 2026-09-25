@@ -1,5 +1,5 @@
 /**
- * Bug Beat Blocks - レベル20全解放版
+ * Bug Beat Blocks - game configuration
  */
 
 const canvas = document.getElementById('gameCanvas');
@@ -166,13 +166,32 @@ const LEVEL_CONFIG = {
     25: { enemyCount: 17, guaranteed: ['white', 'color', 'metal', 'metal', 'egg', 'egg', 'egg', 'batWhite', 'batColor', 'batMetal'], randomPool: ['white', 'color', 'metal', 'egg', 'batWhite', 'batColor', 'batMetal'], limits: { eggs: 5, bats: 6 } },
     26: { enemyCount: 18, guaranteed: ['white', 'color', 'metal', 'metal', 'egg', 'egg', 'egg', 'batWhite', 'batColor', 'batMetal'], randomPool: ['white', 'color', 'metal', 'egg', 'batWhite', 'batColor', 'batMetal'], limits: { eggs: 5, bats: 6 } },
     27: { enemyCount: 19, guaranteed: ['white', 'color', 'metal', 'metal', 'egg', 'egg', 'egg', 'batWhite', 'batColor', 'batMetal'], randomPool: ['white', 'color', 'metal', 'egg', 'batWhite', 'batColor', 'batMetal'], limits: { eggs: 5, bats: 6 } },
-    28: { enemyCount: 20, guaranteed: ['white', 'color', 'metal', 'metal', 'egg', 'egg', 'egg', 'batWhite', 'batColor', 'batMetal'], randomPool: ['white', 'color', 'metal', 'egg', 'batWhite', 'batColor', 'batMetal'], limits: { eggs: 5, bats: 6 } }
+    28: { enemyCount: 20, guaranteed: ['white', 'color', 'metal', 'metal', 'egg', 'egg', 'egg', 'batWhite', 'batColor', 'batMetal'], randomPool: ['white', 'color', 'metal', 'egg', 'batWhite', 'batColor', 'batMetal'], limits: { eggs: 5, bats: 6 } },
+    29: { enemyCount: 21, guaranteed: ['white', 'color', 'metal', 'metal', 'egg', 'egg', 'egg', 'batWhite', 'batColor', 'batMetal'], randomPool: ['white', 'color', 'metal', 'egg', 'batWhite', 'batColor', 'batMetal'], limits: { eggs: 5, bats: 6 } },
+    30: { enemyCount: 22, guaranteed: ['white', 'color', 'metal', 'metal', 'egg', 'egg', 'egg', 'batWhite', 'batColor', 'batMetal'], randomPool: ['white', 'color', 'metal', 'egg', 'batWhite', 'batColor', 'batMetal'], limits: { eggs: 5, bats: 6 } }
 };
 
-const MAX_LEVEL = Math.max(...Object.keys(LEVEL_CONFIG).map(Number));
+const MAX_SELECTABLE_LEVEL = 30;
+const MAX_PLAYABLE_LEVEL = 50;
+const MAX_LEVEL = MAX_PLAYABLE_LEVEL;
+const ENDLESS_GUARANTEED = ['white', 'color', 'metal', 'metal', 'egg', 'egg', 'egg', 'batWhite', 'batColor', 'batMetal'];
+const ENDLESS_RANDOM_POOL = ['white', 'color', 'metal', 'egg', 'batWhite', 'batColor', 'batMetal'];
 
 function getLevelConfig(level) {
-    return LEVEL_CONFIG[level] || LEVEL_CONFIG[1];
+    if (LEVEL_CONFIG[level]) return LEVEL_CONFIG[level];
+    if (level > MAX_SELECTABLE_LEVEL && level <= MAX_PLAYABLE_LEVEL) {
+        return {
+            enemyCount: 22 + (level - MAX_SELECTABLE_LEVEL),
+            guaranteed: ENDLESS_GUARANTEED,
+            randomPool: ENDLESS_RANDOM_POOL,
+            limits: { eggs: 5, bats: 6 }
+        };
+    }
+    return LEVEL_CONFIG[1];
+}
+
+function getNextLevel(level) {
+    return level < MAX_PLAYABLE_LEVEL ? level + 1 : null;
 }
 
 const SHAPES = [

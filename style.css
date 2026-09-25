@@ -313,6 +313,10 @@
         #level-screen .btn {
             flex-shrink: 0;
         }
+
+        #endless-continue-btn {
+            margin-bottom: 14px;
+        }
         .lvl-btn {
             position: relative;
             aspect-ratio: 1;

@@ -58,22 +58,29 @@ function changeScreen(state) {
         container.innerText = devLogs.join('\n') || 'ログはまだありません。';
         container.scrollTop = container.scrollHeight;
     } else if (state === 'GAMEOVER' || state === 'STAGECLEAR') {
+        if (state === 'STAGECLEAR') {
+            const unlockedLevel = getNextLevel(selectedLevel);
+            if (unlockedLevel !== null) saveHighestEndlessLevel(unlockedLevel);
+        }
         document.getElementById('overlay-screen').classList.remove('hidden');
         document.getElementById('game-header').classList.remove('hidden');
         document.getElementById('overlay-title').innerText = state === 'GAMEOVER' ? 'TRY AGAIN?' : 'CLEAR!';
         document.getElementById('overlay-sub').innerText = `SCORE ${score}`;
-        document.getElementById('overlay-action-btn').innerText = state === 'GAMEOVER' ? 'RETRY' : 'NEXT STAGE';
+        const isFinalLevelClear = state === 'STAGECLEAR' && getNextLevel(selectedLevel) === null;
+        document.getElementById('overlay-action-btn').innerText = state === 'GAMEOVER'
+            ? 'RETRY'
+            : (isFinalLevelClear ? 'LEVEL SELECT' : 'NEXT STAGE');
         document.getElementById('overlay-action-btn').className = state === 'GAMEOVER' ? 'btn coral' : 'btn mint';
     }
 }
 
 /**
- * 設定済みの全レベルをオープン
+ * レベル選択には通常ステージのLv1〜30だけを表示する。
  */
 function buildLevelGrid() {
     const grid = document.getElementById('level-grid');
     grid.innerHTML = '';
-    for (let i = 1; i <= MAX_LEVEL; i++) {
+    for (let i = 1; i <= MAX_SELECTABLE_LEVEL; i++) {
         const btn = document.createElement('div');
         btn.className = `lvl-btn`;
         const bugCount = getLevelConfig(i).enemyCount;
@@ -86,7 +93,44 @@ function buildLevelGrid() {
         };
         grid.appendChild(btn);
     }
+    updateEndlessContinueButton();
 }
+
+const ENDLESS_LEVEL_STORAGE_KEY = 'bugBeatBlocksEndlessLevel';
+
+function loadHighestEndlessLevel() {
+    try {
+        const savedLevel = Number(window.localStorage.getItem(ENDLESS_LEVEL_STORAGE_KEY));
+        if (!Number.isInteger(savedLevel) || savedLevel < 31) return null;
+        return Math.min(savedLevel, MAX_PLAYABLE_LEVEL);
+    } catch (error) {
+        return null;
+    }
+}
+
+function saveHighestEndlessLevel(level) {
+    if (level < 31 || level > MAX_PLAYABLE_LEVEL) return;
+    try {
+        const savedLevel = loadHighestEndlessLevel() || 30;
+        window.localStorage.setItem(ENDLESS_LEVEL_STORAGE_KEY, String(Math.max(savedLevel, level)));
+    } catch (error) {}
+}
+
+function updateEndlessContinueButton() {
+    const button = document.getElementById('endless-continue-btn');
+    const savedLevel = loadHighestEndlessLevel();
+    button.classList.toggle('hidden', savedLevel === null);
+    if (savedLevel !== null) button.innerText = `ENDLESS Lv${savedLevel}から再開`;
+}
+
+document.getElementById('endless-continue-btn').onclick = () => {
+    const savedLevel = loadHighestEndlessLevel();
+    if (savedLevel === null) return;
+    selectedLevel = savedLevel;
+    score = 0;
+    setupStage(selectedLevel);
+    changeScreen('PLAYING');
+};
 
 document.getElementById('start-btn').onclick = () => {
     initAudio();
@@ -102,7 +146,13 @@ document.getElementById('overlay-action-btn').onclick = () => {
         setupStage(selectedLevel);
         changeScreen('PLAYING');
     } else if (gameState === 'STAGECLEAR') {
-        selectedLevel = Math.min(selectedLevel + 1, MAX_LEVEL);
+        const nextLevel = getNextLevel(selectedLevel);
+        if (nextLevel === null) {
+            changeScreen('LEVEL_SELECT');
+            return;
+        }
+        selectedLevel = nextLevel;
+        saveHighestEndlessLevel(selectedLevel);
         setupStage(selectedLevel);
         changeScreen('PLAYING');
     }

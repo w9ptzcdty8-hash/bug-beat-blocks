@@ -47,8 +47,14 @@ vm.runInContext(`
 load('js/game.js');
 
 vm.runInContext(`
-    const expectedCounts = [1, 2, 3, 4, 5, 5, 6, 6, 7, 7, 7, 7, 7, 7, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20];
-    assert.equal(MAX_LEVEL, 28);
+    const expectedCounts = [1, 2, 3, 4, 5, 5, 6, 6, 7, 7, 7, 7, 7, 7, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22];
+    for (let level = 31; level <= 50; level++) expectedCounts.push(22 + (level - 30));
+    assert.equal(MAX_SELECTABLE_LEVEL, 30);
+    assert.equal(MAX_PLAYABLE_LEVEL, 50);
+    assert.equal(MAX_LEVEL, 50);
+    assert.equal(getNextLevel(30), 31);
+    assert.equal(getNextLevel(49), 50);
+    assert.equal(getNextLevel(50), null);
 
     for (let level = 1; level <= MAX_LEVEL; level++) {
         const config = getLevelConfig(level);
@@ -71,7 +77,11 @@ vm.runInContext(`
             assert.equal(remainingEnemies, config.enemyCount);
             assert.equal(new Set(occupied.map(cell => cell.r + ',' + cell.c)).size, occupied.length);
             assert.equal(occupied.every(cell => cell.r >= 0 && cell.r < ROWS), true);
-            assert.equal(new Set(batBugs.map(bat => bat.row)).size, batBugs.length, 'bat rows at level ' + level);
+            if (level <= 28) {
+                assert.equal(new Set(batBugs.map(bat => bat.row)).size, batBugs.length, 'bat rows at level ' + level);
+            } else {
+                assert.equal(occupied.every(cell => cell.r >= 6), true, 'random placement rows at level ' + level);
+            }
 
             if (level >= 21) {
                 assert.ok(occupied.filter(cell => cell.type === EGG_BUG).length <= config.limits.eggs);
@@ -96,8 +106,12 @@ vm.runInContext(`
         [8, 9, 10, 11, 12]
     );
     assert.deepEqual(
-        [21, 22, 23, 24, 25, 26, 27, 28].map(level => getLevelConfig(level).enemyCount),
-        [13, 14, 15, 16, 17, 18, 19, 20]
+        [21, 22, 23, 24, 25, 26, 27, 28, 29, 30].map(level => getLevelConfig(level).enemyCount),
+        [13, 14, 15, 16, 17, 18, 19, 20, 21, 22]
+    );
+    assert.deepEqual(
+        [31, 40, 50].map(level => getLevelConfig(level).enemyCount),
+        [23, 32, 42]
     );
 
     const finalKinds = new Set(getLevelConfig(20).guaranteed);
