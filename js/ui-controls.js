@@ -30,6 +30,8 @@ function changeScreen(state) {
     document.getElementById('title-screen').classList.add('hidden');
     document.getElementById('how-to-screen').classList.add('hidden');
     document.getElementById('level-screen').classList.add('hidden');
+    document.getElementById('ranking-screen').classList.add('hidden');
+    document.getElementById('player-name-screen').classList.add('hidden');
     document.getElementById('overlay-screen').classList.add('hidden');
     document.getElementById('pause-screen').classList.add('hidden');
     document.getElementById('log-screen').classList.add('hidden');
@@ -44,6 +46,11 @@ function changeScreen(state) {
     } else if (state === 'LEVEL_SELECT') {
         document.getElementById('level-screen').classList.remove('hidden');
         buildLevelGrid();
+    } else if (state === 'RANKING') {
+        document.getElementById('ranking-screen').classList.remove('hidden');
+        refreshRankingScreen();
+    } else if (state === 'PLAYER_NAME') {
+        document.getElementById('player-name-screen').classList.remove('hidden');
     } else if (state === 'PLAYING') {
         document.getElementById('game-header').classList.remove('hidden');
         document.getElementById('side-panel').classList.remove('hidden');
@@ -65,8 +72,24 @@ function changeScreen(state) {
         document.getElementById('overlay-screen').classList.remove('hidden');
         document.getElementById('game-header').classList.remove('hidden');
         document.getElementById('overlay-title').innerText = state === 'GAMEOVER' ? 'TRY AGAIN?' : 'CLEAR!';
-        document.getElementById('overlay-sub').innerText = `SCORE ${score}`;
         const isFinalLevelClear = state === 'STAGECLEAR' && getNextLevel(selectedLevel) === null;
+        const isFinalResult = state === 'GAMEOVER' || isFinalLevelClear;
+        const result = isFinalResult ? recordLocalResult(score, selectedLevel) : {
+            score,
+            level: selectedLevel,
+            bestScore: loadPlayerData().allTime.score,
+            isNewScore: false,
+            isNewLevel: false
+        };
+        window.currentGameResult = result;
+        document.getElementById('result-level').innerText = `Lv${result.level}`;
+        document.getElementById('result-score').innerText = formatGameScore(result.score);
+        document.getElementById('result-best-score').innerText = formatGameScore(result.bestScore);
+        document.getElementById('result-best-row').classList.toggle('hidden', !isFinalResult);
+        document.getElementById('result-record-badge').classList.toggle('hidden', !(result.isNewScore || result.isNewLevel));
+        document.getElementById('share-result-btn').classList.toggle('hidden', !isFinalResult);
+        document.getElementById('result-ranking-status').classList.add('hidden');
+        if (isFinalResult) submitCurrentRankingResult(result);
         document.getElementById('overlay-action-btn').innerText = state === 'GAMEOVER'
             ? 'RETRY'
             : (isFinalLevelClear ? 'LEVEL SELECT' : 'NEXT STAGE');
@@ -88,6 +111,7 @@ function buildLevelGrid() {
         btn.onclick = () => {
             selectedLevel = i;
             score = 0;
+            startOnlinePlay();
             setupStage(selectedLevel);
             changeScreen('PLAYING');
         };
@@ -128,6 +152,7 @@ document.getElementById('endless-continue-btn').onclick = () => {
     if (savedLevel === null) return;
     selectedLevel = savedLevel;
     score = 0;
+    startOnlinePlay();
     setupStage(selectedLevel);
     changeScreen('PLAYING');
 };
@@ -143,6 +168,7 @@ document.getElementById('back-title-btn').onclick = () => changeScreen('TITLE');
 document.getElementById('overlay-action-btn').onclick = () => {
     if (gameState === 'GAMEOVER') {
         score = 0;
+        startOnlinePlay();
         setupStage(selectedLevel);
         changeScreen('PLAYING');
     } else if (gameState === 'STAGECLEAR') {
@@ -158,6 +184,23 @@ document.getElementById('overlay-action-btn').onclick = () => {
     }
 };
 
+document.getElementById('share-result-btn').onclick = async () => {
+    if (!window.currentGameResult) return;
+    const button = document.getElementById('share-result-btn');
+    try {
+        const result = await shareGameResult(window.currentGameResult);
+        if (result === 'copied') {
+            button.innerText = 'コピーしました！';
+            setTimeout(() => { button.innerText = '結果を共有'; }, 1600);
+        }
+    } catch (error) {
+        if (error?.name !== 'AbortError') {
+            button.innerText = '共有できませんでした';
+            setTimeout(() => { button.innerText = '結果を共有'; }, 1600);
+        }
+    }
+};
+
 document.getElementById('pause-btn').onclick = () => {
     if (gameState === 'PLAYING') changeScreen('PAUSED');
 };
@@ -166,6 +209,7 @@ document.getElementById('resume-btn').onclick = () => {
 };
 document.getElementById('pause-retry-btn').onclick = () => {
     score = 0;
+    startOnlinePlay();
     setupStage(selectedLevel);
     changeScreen('PLAYING');
 };
