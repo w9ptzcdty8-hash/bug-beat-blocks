@@ -51,11 +51,16 @@ function createSuggestionCandidates(baseName) {
 
 async function findAvailableSuggestions(db, monthKey, baseName) {
     const candidates = createSuggestionCandidates(baseName);
-    const placeholders = candidates.map(() => '?').join(',');
-    const used = await db.prepare(
-        `SELECT player_name FROM monthly_players WHERE month_key = ? AND player_name IN (${placeholders})`
-    ).bind(monthKey, ...candidates).all();
-    const usedNames = new Set((used.results || []).map(row => row.player_name));
+    const usedNames = new Set();
+    const queryChunkSize = 50;
+    for (let index = 0; index < candidates.length; index += queryChunkSize) {
+        const chunk = candidates.slice(index, index + queryChunkSize);
+        const placeholders = chunk.map(() => '?').join(',');
+        const used = await db.prepare(
+            `SELECT player_name FROM monthly_players WHERE month_key = ? AND player_name IN (${placeholders})`
+        ).bind(monthKey, ...chunk).all();
+        (used.results || []).forEach(row => usedNames.add(row.player_name));
+    }
     return candidates.filter(name => !usedNames.has(name)).slice(0, 3);
 }
 
