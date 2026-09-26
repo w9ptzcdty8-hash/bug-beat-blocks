@@ -88,12 +88,19 @@ function changeScreen(state, options = {}) {
         document.getElementById('result-best-row').classList.toggle('hidden', !isFinalResult);
         document.getElementById('result-record-badge').classList.toggle('hidden', !(result.isNewScore || result.isNewLevel));
         document.getElementById('share-result-btn').classList.toggle('hidden', !isFinalResult);
-        document.getElementById('result-ranking-status').classList.add('hidden');
+        const rankingStatus = document.getElementById('result-ranking-status');
+        rankingStatus.classList.toggle('hidden', state !== 'GAMEOVER');
+        if (state === 'GAMEOVER') {
+            rankingStatus.innerText = result.score >= MIN_RANKING_SCORE
+                ? 'リトライまたはタイトルに戻る時にランキング登録できます'
+                : `ランキングは${formatGameScore(MIN_RANKING_SCORE)}点以上から`;
+        }
         document.getElementById('overlay-action-btn').innerText = state === 'GAMEOVER'
             ? 'RETRY'
             : (isFinalLevelClear ? 'LEVEL SELECT' : 'NEXT STAGE');
         document.getElementById('overlay-action-btn').className = state === 'GAMEOVER' ? 'btn coral' : 'btn mint';
-        if (isFinalResult && !options.skipRankingPrompt) {
+        document.getElementById('overlay-title-btn').classList.toggle('hidden', state !== 'GAMEOVER');
+        if (isFinalLevelClear && result.score >= MIN_RANKING_SCORE && !options.skipRankingPrompt) {
             setTimeout(() => openRankingResultNameScreen(result, {
                 onComplete: () => changeScreen(state, { skipRankingPrompt: true, result }),
                 onCancel: () => changeScreen(state, { skipRankingPrompt: true, result })
@@ -188,6 +195,22 @@ function returnToTitleFromPlay() {
 function registerCurrentRunBefore(onComplete) {
     const result = recordLocalResult(score, selectedLevel);
     window.currentGameResult = result;
+    if (result.score < MIN_RANKING_SCORE) {
+        onComplete();
+        return;
+    }
+    openRankingResultNameScreen(result, {
+        onComplete,
+        onCancel: onComplete
+    });
+}
+
+function continueGameOverAfterRanking(onComplete) {
+    const result = window.currentGameResult;
+    if (!result || result.score < MIN_RANKING_SCORE || result.rankingFinalized) {
+        onComplete();
+        return;
+    }
     openRankingResultNameScreen(result, {
         onComplete,
         onCancel: onComplete
@@ -196,15 +219,7 @@ function registerCurrentRunBefore(onComplete) {
 
 document.getElementById('overlay-action-btn').onclick = () => {
     if (gameState === 'GAMEOVER') {
-        if (!window.confirm('現在のスコアはリセットされます。\nリトライしますか？')) return;
-        if (window.currentGameResult?.rankingFinalized) {
-            restartCurrentLevel();
-        } else {
-            openRankingResultNameScreen(window.currentGameResult, {
-                onComplete: restartCurrentLevel,
-                onCancel: restartCurrentLevel
-            });
-        }
+        continueGameOverAfterRanking(restartCurrentLevel);
     } else if (gameState === 'STAGECLEAR') {
         const nextLevel = getNextLevel(selectedLevel);
         if (nextLevel === null) {
@@ -216,6 +231,11 @@ document.getElementById('overlay-action-btn').onclick = () => {
         setupStage(selectedLevel);
         changeScreen('PLAYING');
     }
+};
+
+document.getElementById('overlay-title-btn').onclick = () => {
+    if (gameState !== 'GAMEOVER') return;
+    continueGameOverAfterRanking(returnToTitleFromPlay);
 };
 
 document.getElementById('share-result-btn').onclick = async () => {
@@ -248,9 +268,6 @@ document.getElementById('pause-retry-btn').onclick = () => {
 document.getElementById('pause-title-btn').onclick = () => {
     if (!window.confirm('現在のスコアはリセットされます。\nタイトルに戻りますか？')) return;
     registerCurrentRunBefore(returnToTitleFromPlay);
-};
-document.getElementById('open-log-btn').onclick = () => {
-    changeScreen('LOGS');
 };
 document.getElementById('close-log-btn').onclick = () => {
     changeScreen('PAUSED');

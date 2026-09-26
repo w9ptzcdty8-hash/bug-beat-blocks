@@ -68,8 +68,9 @@ function openPlayerNameScreen(options = {}) {
     prompt.innerText = isResultEntry
         ? `Lv${playerNameFlow.result.level} / ${formatGameScore(playerNameFlow.result.score)}点を登録します`
         : '';
-    document.getElementById('player-name-save-btn').innerText = isResultEntry ? 'この名前で記録を登録' : 'この名前にする';
-    document.getElementById('player-name-cancel-btn').innerText = isResultEntry ? '登録せず続ける' : '戻る';
+    document.getElementById('player-name-actions').classList.toggle('result-entry-actions', isResultEntry);
+    document.getElementById('player-name-save-btn').innerText = isResultEntry ? 'この名前で登録' : 'この名前にする';
+    document.getElementById('player-name-cancel-btn').innerText = isResultEntry ? '登録しない' : '戻る';
     changeScreen('PLAYER_NAME');
     setTimeout(() => input.focus(), 50);
 }
@@ -229,6 +230,11 @@ async function retryPendingRankingSubmissions() {
 async function submitCurrentRankingResult(result) {
     const status = document.getElementById('result-ranking-status');
     const data = loadPlayerData();
+    if (result.score < MIN_RANKING_SCORE) {
+        status.innerText = `ランキングは${formatGameScore(MIN_RANKING_SCORE)}点以上から登録できます`;
+        status.classList.remove('hidden');
+        return false;
+    }
     if (!getCurrentPlayerName()) {
         status.innerText = '名前登録後のプレイからランキング対象';
         status.classList.remove('hidden');

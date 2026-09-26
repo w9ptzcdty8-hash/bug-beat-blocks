@@ -52,6 +52,7 @@ const sandbox = {
     Promise,
     URLSearchParams,
     MAX_PLAYABLE_LEVEL: 50,
+    MIN_RANKING_SCORE: 5000,
     window: {
         localStorage: {
             getItem: key => storage.has(key) ? storage.get(key) : null,
@@ -111,7 +112,7 @@ load('js/ranking.js');
     vm.runInContext(`
         globalThis.resultFlowCompleted = false;
         openRankingResultNameScreen(
-            { score: 2400, level: 9, bestScore: 2400 },
+            { score: 12400, level: 9, bestScore: 12400 },
             { onComplete: () => { globalThis.resultFlowCompleted = true; } }
         );
     `, sandbox);

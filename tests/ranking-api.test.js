@@ -92,7 +92,7 @@ async function main() {
     assert.equal(anonymousStart.status, 200, 'name is registered when the result is finalized');
     let anonymousResult = await api('records', {
         method: 'POST',
-        body: { deviceId: anonymousDevice, playToken: anonymousStart.data.playToken, score: 100, level: 1 }
+        body: { deviceId: anonymousDevice, playToken: anonymousStart.data.playToken, score: 5000, level: 1 }
     });
     assert.equal(anonymousResult.status, 409);
     assert.equal(anonymousResult.data.code, 'NAME_REQUIRED');
@@ -115,8 +115,11 @@ async function main() {
     assert.equal(start1.status, 200);
     assert.equal(start2.status, 200);
 
-    const result1 = { deviceId: device1, playToken: start1.data.playToken, score: 1000, level: 5 };
-    const result2 = { deviceId: device2, playToken: start2.data.playToken, score: 1200, level: 4 };
+    const result1 = { deviceId: device1, playToken: start1.data.playToken, score: 10000, level: 5 };
+    const result2 = { deviceId: device2, playToken: start2.data.playToken, score: 12000, level: 4 };
+    response = await api('records', { method: 'POST', body: { ...result1, score: 4999 } });
+    assert.equal(response.status, 422);
+    assert.equal(response.data.code, 'MIN_SCORE_REQUIRED');
     response = await api('records', { method: 'POST', body: result1 });
     assert.equal(response.status, 200);
     response = await api('records', { method: 'POST', body: result2 });
@@ -124,7 +127,7 @@ async function main() {
 
     const scoreRanking = await api(`rankings?type=score&deviceId=${device1}`);
     assert.equal(scoreRanking.status, 200);
-    assert.deepEqual(scoreRanking.data.entries.map(entry => entry.score), [1200, 1000]);
+    assert.deepEqual(scoreRanking.data.entries.map(entry => entry.score), [12000, 10000]);
     assert.equal(scoreRanking.data.ownEntry.rank, 2);
 
     const levelRanking = await api(`rankings?type=level&deviceId=${device1}`);

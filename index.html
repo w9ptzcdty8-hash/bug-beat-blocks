@@ -110,8 +110,10 @@
             <p id="player-name-error" class="player-name-error"></p>
             <div id="player-name-suggestions" class="player-name-suggestions"></div>
         </div>
-        <button class="btn mint" id="player-name-save-btn">この名前にする</button>
-        <button class="btn secondary" id="player-name-cancel-btn">戻る</button>
+        <div id="player-name-actions" class="player-name-actions">
+            <button class="btn mint" id="player-name-save-btn">この名前にする</button>
+            <button class="btn secondary" id="player-name-cancel-btn">戻る</button>
+        </div>
     </div>
 
     <!-- ゲームオーバー／クリア画面 -->
@@ -125,8 +127,9 @@
             <p id="result-ranking-status" class="result-ranking-status hidden"></p>
         </div>
         <p class="subtitle hidden" id="overlay-sub">SCORE 0</p>
-        <button class="btn coral" id="overlay-action-btn">RETRY</button>
         <button class="btn sky hidden" id="share-result-btn">結果を共有</button>
+        <button class="btn coral" id="overlay-action-btn">RETRY</button>
+        <button class="btn secondary hidden" id="overlay-title-btn">タイトルに戻る</button>
     </div>
 
     <!-- ポーズ画面 -->
@@ -134,7 +137,6 @@
         <h1 class="title" style="font-size:28px; margin-bottom: 12px;">PAUSE</h1>
         <button class="btn mint" id="resume-btn">つづける</button>
         <button class="btn sky" id="pause-retry-btn">やり直す</button>
-        <button class="btn pink" id="open-log-btn">開発ログ確認</button>
         <button class="btn secondary" id="pause-title-btn">タイトルに戻る</button>
     </div>
 

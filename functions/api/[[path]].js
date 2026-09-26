@@ -2,6 +2,7 @@ const JSON_HEADERS = {
     'Content-Type': 'application/json; charset=utf-8',
     'Cache-Control': 'no-store'
 };
+const MIN_RANKING_SCORE = 5000;
 
 function json(data, status = 200) {
     return new Response(JSON.stringify(data), { status, headers: JSON_HEADERS });
@@ -189,13 +190,14 @@ const UPSERT_RECORD_SQL = `
 
 async function getRecordRanks(db, monthKey, deviceHash) {
     const record = await db.prepare(
-        'SELECT * FROM monthly_records WHERE month_key = ? AND device_hash = ?'
+        `SELECT * FROM monthly_records
+         WHERE month_key = ? AND device_hash = ? AND best_score >= ${MIN_RANKING_SCORE}`
     ).bind(monthKey, deviceHash).first();
     if (!record) return { scoreRank: null, levelRank: null };
     const [scoreAhead, levelAhead] = await Promise.all([
         db.prepare(`
             SELECT COUNT(*) AS count FROM monthly_records
-            WHERE month_key = ? AND (
+            WHERE month_key = ? AND best_score >= ${MIN_RANKING_SCORE} AND (
                 best_score > ? OR
                 (best_score = ? AND score_run_level > ?) OR
                 (best_score = ? AND score_run_level = ? AND score_recorded_at < ?) OR
@@ -206,7 +208,7 @@ async function getRecordRanks(db, monthKey, deviceHash) {
             record.best_score, record.score_run_level, record.score_recorded_at, deviceHash).first(),
         db.prepare(`
             SELECT COUNT(*) AS count FROM monthly_records
-            WHERE month_key = ? AND (
+            WHERE month_key = ? AND best_score >= ${MIN_RANKING_SCORE} AND (
                 best_level > ? OR
                 (best_level = ? AND level_run_score > ?) OR
                 (best_level = ? AND level_run_score = ? AND level_recorded_at < ?) OR
@@ -232,6 +234,12 @@ async function handleRecords(context) {
     }
     if (!Number.isInteger(score) || score < 0 || score > 1000000000 || !Number.isInteger(level) || level < 1 || level > 50) {
         return json({ code: 'INVALID_RESULT', message: '記録の値が不正です' }, 400);
+    }
+    if (score < MIN_RANKING_SCORE) {
+        return json({
+            code: 'MIN_SCORE_REQUIRED',
+            message: `ランキングは${MIN_RANKING_SCORE}点以上から登録できます`
+        }, 422);
     }
 
     const db = context.env.RANKINGS_DB;
@@ -279,7 +287,7 @@ async function handleRankings(context) {
             r.best_score, r.score_run_level, r.best_level, r.level_run_score
         FROM monthly_records r
         JOIN monthly_players p ON p.month_key = r.month_key AND p.device_hash = r.device_hash
-        WHERE r.month_key = ?
+        WHERE r.month_key = ? AND r.best_score >= ${MIN_RANKING_SCORE}
         ORDER BY ${order}
         LIMIT 30
     `).bind(monthKey).all();
@@ -298,7 +306,7 @@ async function handleRankings(context) {
         const own = await context.env.RANKINGS_DB.prepare(`
             SELECT p.player_name, r.* FROM monthly_records r
             JOIN monthly_players p ON p.month_key = r.month_key AND p.device_hash = r.device_hash
-            WHERE r.month_key = ? AND r.device_hash = ?
+            WHERE r.month_key = ? AND r.device_hash = ? AND r.best_score >= ${MIN_RANKING_SCORE}
         `).bind(monthKey, deviceHash).first();
         if (own) {
             ownEntry = {
