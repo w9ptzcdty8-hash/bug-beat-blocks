@@ -59,6 +59,14 @@ async function findAvailableSuggestions(db, monthKey, baseName) {
     return candidates.filter(name => !usedNames.has(name)).slice(0, 3);
 }
 
+async function nameTakenResponse(db, monthKey, playerName) {
+    return json({
+        code: 'NAME_TAKEN',
+        message: 'その名前は今月すでに使われています',
+        suggestions: await findAvailableSuggestions(db, monthKey, playerName)
+    }, 409);
+}
+
 async function handlePlayerName(context) {
     if (context.request.method !== 'POST') return json({ code: 'METHOD_NOT_ALLOWED' }, 405);
     const body = await readJson(context.request);
@@ -77,6 +85,12 @@ async function handlePlayerName(context) {
     const existingPlayer = await db.prepare(
         'SELECT player_name FROM monthly_players WHERE month_key = ? AND device_hash = ?'
     ).bind(monthKey, deviceHash).first();
+    const nameOwner = await db.prepare(
+        'SELECT device_hash FROM monthly_players WHERE month_key = ? AND player_name = ?'
+    ).bind(monthKey, playerName).first();
+    if (nameOwner && nameOwner.device_hash !== deviceHash) {
+        return nameTakenResponse(db, monthKey, playerName);
+    }
     if (!existingPlayer) {
         const recentClaims = await db.prepare(`
             SELECT COUNT(*) AS count FROM monthly_players
@@ -96,13 +110,11 @@ async function handlePlayerName(context) {
         `).bind(monthKey, deviceHash, playerName, ipHash, now, now).run();
         return json({ monthKey, playerName });
     } catch (error) {
-        if (!String(error.message || error).includes('UNIQUE')) throw error;
-        const suggestions = await findAvailableSuggestions(db, monthKey, playerName);
-        return json({
-            code: 'NAME_TAKEN',
-            message: 'その名前は今月すでに使われています',
-            suggestions
-        }, 409);
+        const conflictingPlayer = await db.prepare(
+            'SELECT device_hash FROM monthly_players WHERE month_key = ? AND player_name = ?'
+        ).bind(monthKey, playerName).first();
+        if (!conflictingPlayer || conflictingPlayer.device_hash === deviceHash) throw error;
+        return nameTakenResponse(db, monthKey, playerName);
     }
 }
 
