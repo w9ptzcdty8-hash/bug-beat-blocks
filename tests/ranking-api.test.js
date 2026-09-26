@@ -83,6 +83,20 @@ async function main() {
 
     const device1 = 'device-00000001';
     const device2 = 'device-00000002';
+    const anonymousDevice = 'device-anonymous-0001';
+    const anonymousStart = await api('play/start', {
+        method: 'POST',
+        body: { deviceId: anonymousDevice },
+        deviceIp: '192.0.2.3'
+    });
+    assert.equal(anonymousStart.status, 200, 'name is registered when the result is finalized');
+    let anonymousResult = await api('records', {
+        method: 'POST',
+        body: { deviceId: anonymousDevice, playToken: anonymousStart.data.playToken, score: 100, level: 1 }
+    });
+    assert.equal(anonymousResult.status, 409);
+    assert.equal(anonymousResult.data.code, 'NAME_REQUIRED');
+
     let response = await api('player-name', { method: 'POST', body: { deviceId: device1, playerName: 'mrs1' } });
     assert.equal(response.status, 200);
     assert.equal(response.data.playerName, 'MRS1');

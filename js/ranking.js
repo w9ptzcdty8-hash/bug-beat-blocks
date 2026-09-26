@@ -2,6 +2,7 @@ let currentRankingType = 'score';
 let activePlayToken = null;
 let playStartSequence = 0;
 let activePlayStartPromise = Promise.resolve(null);
+let playerNameFlow = null;
 
 async function requestRankingApi(path, options = {}) {
     const response = await fetch(path, {
@@ -53,14 +54,33 @@ async function reclaimSavedPlayerName() {
     }
 }
 
-function openPlayerNameScreen() {
+function openPlayerNameScreen(options = {}) {
     const data = loadPlayerData();
     const input = document.getElementById('player-name-input');
     input.value = data.playerName || '';
     document.getElementById('player-name-error').innerText = '';
     document.getElementById('player-name-suggestions').innerHTML = '';
+    playerNameFlow = options.mode === 'result' ? options : { mode: 'ranking' };
+    const isResultEntry = playerNameFlow.mode === 'result';
+    document.getElementById('player-name-title').innerText = isResultEntry ? 'RANKING ENTRY' : 'PLAYER NAME';
+    const prompt = document.getElementById('player-name-prompt');
+    prompt.classList.toggle('hidden', !isResultEntry);
+    prompt.innerText = isResultEntry
+        ? `Lv${playerNameFlow.result.level} / ${formatGameScore(playerNameFlow.result.score)}点を登録します`
+        : '';
+    document.getElementById('player-name-save-btn').innerText = isResultEntry ? 'この名前で記録を登録' : 'この名前にする';
+    document.getElementById('player-name-cancel-btn').innerText = isResultEntry ? '登録せず続ける' : '戻る';
     changeScreen('PLAYER_NAME');
     setTimeout(() => input.focus(), 50);
+}
+
+function openRankingResultNameScreen(result, options = {}) {
+    openPlayerNameScreen({
+        mode: 'result',
+        result,
+        onComplete: options.onComplete,
+        onCancel: options.onCancel
+    });
 }
 
 function renderNameSuggestions(suggestions) {
@@ -96,7 +116,19 @@ async function submitPlayerName(inputValue) {
         });
         saveRegisteredPlayerName(response.playerName, response.monthKey);
         error.innerText = '';
-        changeScreen('RANKING');
+        if (playerNameFlow?.mode === 'result') {
+            const completedFlow = playerNameFlow;
+            const submitted = await submitCurrentRankingResult(completedFlow.result);
+            if (!submitted) {
+                error.innerText = '記録を送信できませんでした。もう一度お試しください';
+                return;
+            }
+            playerNameFlow = null;
+            if (typeof completedFlow.onComplete === 'function') completedFlow.onComplete();
+        } else {
+            playerNameFlow = null;
+            changeScreen('RANKING');
+        }
     } catch (apiError) {
         error.innerText = apiError.status === 409
             ? 'その名前は今月すでに使われています'
@@ -156,7 +188,6 @@ async function startOnlinePlay() {
     activePlayStartPromise = (async () => {
         await reclaimSavedPlayerName();
         const data = loadPlayerData();
-        if (!getCurrentPlayerName()) return null;
         retryPendingRankingSubmissions();
         try {
             const response = await requestRankingApi('/api/play/start', {
@@ -201,13 +232,13 @@ async function submitCurrentRankingResult(result) {
     if (!getCurrentPlayerName()) {
         status.innerText = '名前登録後のプレイからランキング対象';
         status.classList.remove('hidden');
-        return;
+        return false;
     }
     if (!activePlayToken) await activePlayStartPromise;
     if (!activePlayToken) {
         status.innerText = '今回はランキング通信の対象外です';
         status.classList.remove('hidden');
-        return;
+        return false;
     }
     const submission = {
         deviceId: data.deviceId,
@@ -216,6 +247,7 @@ async function submitCurrentRankingResult(result) {
         level: result.level
     };
     activePlayToken = null;
+    result.rankingFinalized = true;
     queuePendingSubmission(submission);
     status.innerText = '月間ランキングへ送信中...';
     status.classList.remove('hidden');
@@ -227,11 +259,29 @@ async function submitCurrentRankingResult(result) {
     } catch (error) {
         status.innerText = '通信後にランキング送信を再試行します';
     }
+    return true;
+}
+
+function cancelPlayerNameFlow() {
+    if (playerNameFlow?.mode === 'result') {
+        const cancelledFlow = playerNameFlow;
+        playerNameFlow = null;
+        if (typeof cancelledFlow.onCancel === 'function') cancelledFlow.onCancel();
+        return;
+    }
+    playerNameFlow = null;
+    changeScreen('RANKING');
+}
+
+function discardActiveRankingPlay() {
+    playStartSequence += 1;
+    activePlayToken = null;
+    activePlayStartPromise = Promise.resolve(null);
 }
 
 document.getElementById('ranking-btn').onclick = () => changeScreen('RANKING');
 document.getElementById('ranking-back-btn').onclick = () => changeScreen('TITLE');
-document.getElementById('ranking-player-name').onclick = openPlayerNameScreen;
+document.getElementById('ranking-player-name').onclick = () => openPlayerNameScreen();
 document.getElementById('ranking-retry-btn').onclick = refreshRankingScreen;
 document.getElementById('ranking-score-tab').onclick = () => {
     currentRankingType = 'score';
@@ -248,4 +298,4 @@ document.getElementById('player-name-input').addEventListener('input', event => 
 document.getElementById('player-name-save-btn').onclick = () => {
     submitPlayerName(document.getElementById('player-name-input').value);
 };
-document.getElementById('player-name-cancel-btn').onclick = () => changeScreen('RANKING');
+document.getElementById('player-name-cancel-btn').onclick = cancelPlayerNameFlow;

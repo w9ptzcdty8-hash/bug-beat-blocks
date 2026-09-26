@@ -101,8 +101,9 @@
 
     <!-- プレイヤー名入力画面 -->
     <div id="player-name-screen" class="screen hidden">
-        <h1 class="section-title">PLAYER NAME</h1>
+        <h1 class="section-title" id="player-name-title">PLAYER NAME</h1>
         <div class="player-name-card">
+            <p id="player-name-prompt" class="player-name-prompt hidden"></p>
             <p>英大文字・数字で1〜5文字</p>
             <input id="player-name-input" type="text" maxlength="5" inputmode="text" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="プレイヤー名">
             <p class="player-name-notice">登録名と記録は月間ランキングで公開されます。</p>

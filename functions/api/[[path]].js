@@ -113,11 +113,6 @@ async function handlePlayStart(context) {
     const db = context.env.RANKINGS_DB;
     const monthKey = getJstMonthKey();
     const deviceHash = await sha256(body.deviceId);
-    const player = await db.prepare(
-        'SELECT player_name FROM monthly_players WHERE month_key = ? AND device_hash = ?'
-    ).bind(monthKey, deviceHash).first();
-    if (!player) return json({ code: 'NAME_REQUIRED', message: 'プレイヤー名を登録してください' }, 409);
-
     const now = Date.now();
     const ip = context.request.headers.get('CF-Connecting-IP') || 'unknown';
     const ipHash = await sha256(ip);

@@ -468,6 +468,14 @@
             font-weight: 800;
         }
 
+        .player-name-card .player-name-prompt {
+            margin-bottom: 12px;
+            padding: 8px;
+            border-radius: 9px;
+            background: rgba(112, 214, 255, 0.35);
+            font-size: 14px;
+        }
+
         #player-name-input {
             width: 100%;
             margin: 14px 0 8px;

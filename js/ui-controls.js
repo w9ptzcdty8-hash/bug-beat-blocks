@@ -25,7 +25,7 @@ function resizeCanvas() {
     sidePanel.style.height = `${boardHeight}px`;
 }
 
-function changeScreen(state) {
+function changeScreen(state, options = {}) {
     gameState = state;
     document.getElementById('title-screen').classList.add('hidden');
     document.getElementById('how-to-screen').classList.add('hidden');
@@ -74,13 +74,13 @@ function changeScreen(state) {
         document.getElementById('overlay-title').innerText = state === 'GAMEOVER' ? 'TRY AGAIN?' : 'CLEAR!';
         const isFinalLevelClear = state === 'STAGECLEAR' && getNextLevel(selectedLevel) === null;
         const isFinalResult = state === 'GAMEOVER' || isFinalLevelClear;
-        const result = isFinalResult ? recordLocalResult(score, selectedLevel) : {
+        const result = options.result || (isFinalResult ? recordLocalResult(score, selectedLevel) : {
             score,
             level: selectedLevel,
             bestScore: loadPlayerData().allTime.score,
             isNewScore: false,
             isNewLevel: false
-        };
+        });
         window.currentGameResult = result;
         document.getElementById('result-level').innerText = `Lv${result.level}`;
         document.getElementById('result-score').innerText = formatGameScore(result.score);
@@ -89,11 +89,16 @@ function changeScreen(state) {
         document.getElementById('result-record-badge').classList.toggle('hidden', !(result.isNewScore || result.isNewLevel));
         document.getElementById('share-result-btn').classList.toggle('hidden', !isFinalResult);
         document.getElementById('result-ranking-status').classList.add('hidden');
-        if (isFinalResult) submitCurrentRankingResult(result);
         document.getElementById('overlay-action-btn').innerText = state === 'GAMEOVER'
             ? 'RETRY'
             : (isFinalLevelClear ? 'LEVEL SELECT' : 'NEXT STAGE');
         document.getElementById('overlay-action-btn').className = state === 'GAMEOVER' ? 'btn coral' : 'btn mint';
+        if (isFinalResult && !options.skipRankingPrompt) {
+            setTimeout(() => openRankingResultNameScreen(result, {
+                onComplete: () => changeScreen(state, { skipRankingPrompt: true, result }),
+                onCancel: () => changeScreen(state, { skipRankingPrompt: true, result })
+            }), 0);
+        }
     }
 }
 
@@ -165,12 +170,41 @@ document.getElementById('start-btn').onclick = () => {
 document.getElementById('how-to-btn').onclick = () => changeScreen('HOW_TO');
 document.getElementById('how-to-back-btn').onclick = () => changeScreen('TITLE');
 document.getElementById('back-title-btn').onclick = () => changeScreen('TITLE');
+
+function restartCurrentLevel() {
+    discardActiveRankingPlay();
+    score = 0;
+    startOnlinePlay();
+    setupStage(selectedLevel);
+    changeScreen('PLAYING');
+}
+
+function returnToTitleFromPlay() {
+    discardActiveRankingPlay();
+    score = 0;
+    changeScreen('TITLE');
+}
+
+function registerCurrentRunBefore(onComplete) {
+    const result = recordLocalResult(score, selectedLevel);
+    window.currentGameResult = result;
+    openRankingResultNameScreen(result, {
+        onComplete,
+        onCancel: onComplete
+    });
+}
+
 document.getElementById('overlay-action-btn').onclick = () => {
     if (gameState === 'GAMEOVER') {
-        score = 0;
-        startOnlinePlay();
-        setupStage(selectedLevel);
-        changeScreen('PLAYING');
+        if (!window.confirm('現在のスコアはリセットされます。\nリトライしますか？')) return;
+        if (window.currentGameResult?.rankingFinalized) {
+            restartCurrentLevel();
+        } else {
+            openRankingResultNameScreen(window.currentGameResult, {
+                onComplete: restartCurrentLevel,
+                onCancel: restartCurrentLevel
+            });
+        }
     } else if (gameState === 'STAGECLEAR') {
         const nextLevel = getNextLevel(selectedLevel);
         if (nextLevel === null) {
@@ -208,13 +242,12 @@ document.getElementById('resume-btn').onclick = () => {
     if (gameState === 'PAUSED') changeScreen('PLAYING');
 };
 document.getElementById('pause-retry-btn').onclick = () => {
-    score = 0;
-    startOnlinePlay();
-    setupStage(selectedLevel);
-    changeScreen('PLAYING');
+    if (!window.confirm('現在のスコアはリセットされます。\nやり直しますか？')) return;
+    registerCurrentRunBefore(restartCurrentLevel);
 };
 document.getElementById('pause-title-btn').onclick = () => {
-    changeScreen('TITLE');
+    if (!window.confirm('現在のスコアはリセットされます。\nタイトルに戻りますか？')) return;
+    registerCurrentRunBefore(returnToTitleFromPlay);
 };
 document.getElementById('open-log-btn').onclick = () => {
     changeScreen('LOGS');

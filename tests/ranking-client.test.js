@@ -107,12 +107,21 @@ load('js/player-data.js');
 load('js/ranking.js');
 
 (async () => {
+    await vm.runInContext('startOnlinePlay()', sandbox);
+    vm.runInContext(`
+        globalThis.resultFlowCompleted = false;
+        openRankingResultNameScreen(
+            { score: 2400, level: 9, bestScore: 2400 },
+            { onComplete: () => { globalThis.resultFlowCompleted = true; } }
+        );
+    `, sandbox);
+    assert.equal(sandbox.screenState, 'PLAYER_NAME');
+    assert.equal(getElement('player-name-input').value, '');
+    assert.match(getElement('player-name-prompt').innerText, /Lv9/);
+
     await vm.runInContext(`submitPlayerName('a-1')`, sandbox);
     assert.equal(vm.runInContext('getCurrentPlayerName()', sandbox), 'A1');
-    assert.equal(sandbox.screenState, 'RANKING');
-
-    await vm.runInContext('startOnlinePlay()', sandbox);
-    await vm.runInContext(`submitCurrentRankingResult({ score: 2400, level: 9, bestScore: 2400 })`, sandbox);
+    assert.equal(sandbox.resultFlowCompleted, true);
     assert.equal(getElement('result-ranking-status').innerText, '月間 SCORE 3位 / LEVEL 4位');
     assert.equal(vm.runInContext('loadPlayerData().pendingSubmissions.length', sandbox), 0);
 
